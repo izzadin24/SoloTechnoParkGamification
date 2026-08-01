@@ -523,7 +523,7 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
         {/* Viewport Peta Center */}
         <div 
           ref={containerRef}
-          className="relative w-full h-[65vh] rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-900 touch-none select-none flex items-center justify-center p-4"
+          className="relative w-full h-[65vh] rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-100 touch-none select-none flex items-center justify-center p-4"
           onWheel={handleWheel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -587,24 +587,24 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
           </div>
 
           {/* Floating Mobile/Touch Controls (Zoom In, Zoom Out, Reset) */}
-          <div className="absolute bottom-3 right-3 z-20 flex flex-col gap-2 bg-slate-900/80 backdrop-blur-md p-1.5 rounded-xl border border-white/20 shadow-lg">
+          <div className="absolute bottom-3 right-3 z-20 flex flex-col gap-2 bg-white/95 backdrop-blur-md p-1.5 rounded-xl border border-slate-200/80 shadow-lg text-slate-700">
             <button
               onClick={handleZoomIn}
-              className="p-2 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white rounded-lg transition-all"
+              className="p-2 hover:bg-slate-100 active:bg-slate-200 text-slate-700 rounded-lg transition-all"
               title={t('Perbesar', 'Zoom In')}
             >
               <Plus size={18} />
             </button>
             <button
               onClick={handleZoomOut}
-              className="p-2 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white rounded-lg transition-all"
+              className="p-2 hover:bg-slate-100 active:bg-slate-200 text-slate-700 rounded-lg transition-all"
               title={t('Perkecil', 'Zoom Out')}
             >
               <Minus size={18} />
             </button>
             <button
               onClick={handleResetZoom}
-              className="p-2 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white rounded-lg transition-all"
+              className="p-2 hover:bg-slate-100 active:bg-slate-200 text-slate-700 rounded-lg transition-all"
               title={t('Reset Zoom', 'Reset Zoom')}
             >
               <RotateCcw size={16} />
@@ -612,7 +612,7 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
           </div>
 
           {/* Zoom Level Badge */}
-          <div className="absolute top-3 left-3 z-20 bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/20 text-[11px] font-bold text-white shadow-md">
+          <div className="absolute top-3 left-3 z-20 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-lg border border-slate-200/80 text-[11px] font-bold text-slate-800 shadow-md">
             {zoomDisplay}%
           </div>
         </div>
