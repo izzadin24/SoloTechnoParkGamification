@@ -336,6 +336,42 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const viewportRef = useRef<HTMLDivElement>(null);
 
+  // 1. DOKUMEN WARNA BERDASARKAN ZONA_ID (Atur warna sesuai selera)
+  const getZoneColor = (zonaId: string) => {
+    switch (zonaId) {
+      case 'zona-1':
+        return {
+          bg: 'bg-amber-500',        // Warna Oranye/Kuning
+          border: 'border-amber-200',
+          dot: 'bg-amber-200',
+        };
+      case 'zona-2':
+        return {
+          bg: 'bg-blue-700',      // Warna Hijau
+          border: 'border-blue-300',
+          dot: 'bg-blue-200',
+        };
+      case 'zona-3':
+        return {
+          bg: 'bg-rose-500',         // Warna Merah
+          border: 'border-rose-200',
+          dot: 'bg-rose-200',
+        };
+      case 'zona-4':
+        return {
+          bg: 'bg-purple-500',       // Warna Ungu (opsional)
+          border: 'border-purple-200',
+          dot: 'bg-purple-200',
+        };
+      default:
+        return {
+          bg: 'bg-sky-500',          // Warna Biru Default
+          border: 'border-sky-200',
+          dot: 'bg-sky-200',
+        };
+    }
+  };
+
   const clampZoom = (value: number) => Math.min(3, Math.max(0.5, value));
 
   const handleWheel = (event: React.WheelEvent) => {
@@ -376,13 +412,15 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-black text-xl">{t('Peta Kawasan', 'Area Map')}</h2>
-          <p className="text-xs font-medium text-slate-500">{t('Drag untuk geser • Scroll untuk zoom', 'Drag to pan • Scroll to zoom')}</p>
+          <p className="text-xs font-medium text-slate-500">
+            {t('Drag untuk geser • Scroll untuk zoom', 'Drag to pan • Scroll to zoom')}
+          </p>
         </div>
 
         {/* Viewport Peta Center */}
         <div
           ref={viewportRef}
-          className="w-full h-[70vh] overflow-auto rounded-xl border-2 border-slate-200 bg-slate-900 touch-none select-none overscroll-contain flex items-center justify-center p-4 relative"
+          className="w-full h-[65vh] overflow-auto rounded-xl border-2 border-slate-200 bg-slate-900 touch-none select-none overscroll-contain flex items-center justify-center p-4 relative"
           onWheel={handleWheel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -392,25 +430,27 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
           onTouchMove={(event) => event.preventDefault()}
           onContextMenu={(event) => event.preventDefault()}
         >
-          {/* Pembungkus Gambar Peta + Pin Checkpoints */}
-          <div 
-            className="relative flex items-center justify-center transition-transform duration-75 ease-out origin-center"
+          {/* Pembungkus Zoom */}
+          <div
+            className="transition-transform duration-75 ease-out origin-center flex items-center justify-center min-w-full min-h-full"
             style={{ transform: `scale(${zoom})` }}
           >
-            <div className="relative inline-block">
+            <div className="relative inline-block w-fit h-fit">
               <img
                 src={mapImage.src}
                 alt={t('Peta kawasan', 'Area map')}
-                className="max-w-full max-h-[65vh] object-contain cursor-grab pointer-events-none block rounded-lg"
+                className="max-w-full max-h-[60vh] object-contain cursor-grab pointer-events-none block rounded-lg"
                 draggable={false}
               />
 
-              {/* RENDER PIN CHECKPOINT DARI SUPABASE (posisi_x & posisi_y) */}
+              {/* RENDER PIN CHECKPOINT DENGAN WARNA DINAMIS */}
               {gameData?.checkpoints?.map((cp: any) => {
                 const isScanned = progress.scannedCheckpoints.includes(cp.id);
-                
-                const posX = cp.posisi_x ?? 50; 
+                const posX = cp.posisi_x ?? 50;
                 const posY = cp.posisi_y ?? 50;
+                
+                // Ambil warna berdasarkan zona_id dari Supabase
+                const zoneColor = getZoneColor(cp.zona_id);
 
                 return (
                   <div
@@ -420,20 +460,36 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
                     title={lang === 'id' ? cp.nama_id : cp.nama_en}
                   >
                     {isScanned ? (
-                      /* Pin SUDAH DI-SCAN (Hijau & Ceklis) */
+                      /* Pin jika SUDAH di-scan (tetap hijau centang) */
                       <div className="w-7 h-7 bg-emerald-500 border-2 border-white text-white rounded-full flex items-center justify-center shadow-lg animate-bounce">
                         <Check size={16} strokeWidth={3} />
                       </div>
                     ) : (
-                      /* Pin BELUM DI-SCAN (Titik Gelap) */
-                      <div className="w-6 h-6 bg-slate-700/90 border-2 border-white rounded-full shadow-md flex items-center justify-center">
-                        <div className="w-2 h-2 bg-white/70 rounded-full"></div>
+                      /* Pin BELUM di-scan (Warnanya mengikuti zonanya) */
+                      <div className={`w-6 h-6 ${zoneColor.bg} border-2 border-white rounded-full shadow-md flex items-center justify-center`}>
+                        <div className={`w-2 h-2 ${zoneColor.dot} rounded-full`}></div>
                       </div>
                     )}
                   </div>
                 );
               })}
             </div>
+          </div>
+        </div>
+
+        {/* LEGENDA WARNA ZONA */}
+        <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap gap-x-4 gap-y-2 text-[11px] font-semibold text-slate-700">
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-amber-500 inline-block shadow-sm"></span>
+            <span>{t('Zona 1', 'Zone 1')}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow-sm"></span>
+            <span>{t('Zona 2', 'Zone 2')}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-rose-500 inline-block shadow-sm"></span>
+            <span>{t('Zona 3', 'Zone 3')}</span>
           </div>
         </div>
       </div>
