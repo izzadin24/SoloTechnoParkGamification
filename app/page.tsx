@@ -102,7 +102,6 @@ export default function GameApp() {
   const handleScanSuccess = (decodedText: string) => {
     if (!gameData) return;
     
-    // Scan expects QR code to match kode_qr
     const checkpoint = gameData.checkpoints.find(c => c.kode_qr === decodedText);
     if (!checkpoint) {
       alert(lang === 'id' ? 'QR tidak valid' : 'Invalid QR');
@@ -124,7 +123,6 @@ export default function GameApp() {
 
     setCurrentScan({ checkpointId: checkpoint.id, cardId: card.id });
     
-    // Add to stat queue
     setStatQueue(prev => [...prev, { checkpoint_id: checkpoint.id, terakhir_update: new Date().toISOString() }]);
     
     setView('teaser');
@@ -154,100 +152,100 @@ export default function GameApp() {
     >
       <div className="min-h-screen w-full bg-slate-950/55 backdrop-blur-[2px]">
         {view !== 'landing' && (
-        <header className="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 py-3 flex justify-between items-center">
-          <div className="font-bold text-lg text-slate-800">
-            Jelajah STP
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => setView('map')} className={`p-2 rounded-lg ${view === 'map' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
-              <Map size={20} />
-            </button>
-            <button onClick={() => setView('scanner')} className={`p-2 rounded-lg ${view === 'scanner' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
-              <ScanLine size={20} />
-            </button>
-            <button onClick={() => setView('inventory')} className={`p-2 rounded-lg ${view === 'inventory' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
-              <LayoutGrid size={20} />
-            </button>
-            <button onClick={() => setView('blueprint')} className={`p-2 rounded-lg ${view === 'blueprint' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
-              <Hammer size={20} />
-            </button>
-          </div>
-        </header>
-      )}
-
-      <main className="max-w-md mx-auto p-4 pb-24">
-        {view === 'landing' && (
-          <LandingView 
-            lang={lang} 
-            setLang={setLang} 
-            gameData={gameData}
-            isLoading={isLoading}
-            error={error}
-            onStart={handleStart}
-            t={t}
-          />
-        )}
-        
-        {view === 'map' && gameData && (
-          <MapView 
-            gameData={gameData} 
-            progress={progress} 
-            onScan={() => setView('scanner')} 
-            onScanManual={handleScanSuccess}
-            t={t} 
-            lang={lang}
-          />
-        )}
-        
-        {view === 'scanner' && (
-          <ScannerView 
-            onSuccess={handleScanSuccess} 
-            onCancel={() => setView('map')} 
-            t={t}
-            lang={lang}
-          />
+          <header className="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 py-3 flex justify-between items-center">
+            <div className="font-bold text-lg text-slate-800">
+              Jelajah STP
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setView('map')} className={`p-2 rounded-lg ${view === 'map' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
+                <Map size={20} />
+              </button>
+              <button onClick={() => setView('scanner')} className={`p-2 rounded-lg ${view === 'scanner' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
+                <ScanLine size={20} />
+              </button>
+              <button onClick={() => setView('inventory')} className={`p-2 rounded-lg ${view === 'inventory' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
+                <LayoutGrid size={20} />
+              </button>
+              <button onClick={() => setView('blueprint')} className={`p-2 rounded-lg ${view === 'blueprint' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
+                <Hammer size={20} />
+              </button>
+            </div>
+          </header>
         )}
 
-        {view === 'teaser' && currentScan && gameData && (
-          <TeaserView 
-            card={gameData.cards.find(c => c.id === currentScan.cardId)!} 
-            onContinue={claimCard} 
-            t={t}
-            lang={lang}
-          />
-        )}
+        <main className="max-w-md mx-auto p-4 pb-24">
+          {view === 'landing' && (
+            <LandingView 
+              lang={lang} 
+              setLang={setLang} 
+              gameData={gameData}
+              isLoading={isLoading}
+              error={error}
+              onStart={handleStart}
+              t={t}
+            />
+          )}
+          
+          {view === 'map' && gameData && (
+            <MapView 
+              gameData={gameData} 
+              progress={progress} 
+              onScan={() => setView('scanner')} 
+              onScanManual={handleScanSuccess}
+              t={t} 
+              lang={lang}
+            />
+          )}
+          
+          {view === 'scanner' && (
+            <ScannerView 
+              onSuccess={handleScanSuccess} 
+              onCancel={() => setView('map')} 
+              t={t}
+              lang={lang}
+            />
+          )}
 
-        {view === 'reveal' && currentScan && gameData && (
-          <RevealView 
-            card={gameData.cards.find(c => c.id === currentScan.cardId)!} 
-            checkpoint={gameData.checkpoints.find(c => c.id === currentScan.checkpointId)!}
-            onClose={() => {
-              setCurrentScan(null);
-              setView('inventory');
-            }} 
-            t={t}
-            lang={lang}
-          />
-        )}
+          {view === 'teaser' && currentScan && gameData && (
+            <TeaserView 
+              card={gameData.cards.find(c => c.id === currentScan.cardId)!} 
+              onContinue={claimCard} 
+              t={t}
+              lang={lang}
+            />
+          )}
 
-        {view === 'inventory' && gameData && (
-          <InventoryView 
-            gameData={gameData} 
-            progress={progress} 
-            t={t}
-            lang={lang}
-          />
-        )}
+          {view === 'reveal' && currentScan && gameData && (
+            <RevealView 
+              card={gameData.cards.find(c => c.id === currentScan.cardId)!} 
+              checkpoint={gameData.checkpoints.find(c => c.id === currentScan.checkpointId)!}
+              onClose={() => {
+                setCurrentScan(null);
+                setView('inventory');
+              }} 
+              t={t}
+              lang={lang}
+            />
+          )}
 
-        {view === 'blueprint' && gameData && progress.ideaId && (
-          <BlueprintView 
-            gameData={gameData} 
-            progress={progress} 
-            t={t}
-            lang={lang}
-          />
-        )}
-      </main>
+          {view === 'inventory' && gameData && (
+            <InventoryView 
+              gameData={gameData} 
+              progress={progress} 
+              t={t}
+              lang={lang}
+            />
+          )}
+
+          {view === 'blueprint' && gameData && progress.ideaId && (
+            <BlueprintView 
+              gameData={gameData} 
+              progress={progress} 
+              t={t}
+              lang={lang}
+            />
+          )}
+        </main>
       </div>
     </div>
   );
@@ -259,7 +257,6 @@ export default function GameApp() {
 
 function LandingView({ lang, setLang, gameData, isLoading, error, onStart, t }: any) {
   const ideas = gameData?.ideas || [];
-  
   const [selectedIdea, setSelectedIdea] = useState<string | null>(null);
 
   useEffect(() => {
@@ -382,10 +379,10 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
           <p className="text-xs font-medium text-slate-500">{t('Drag untuk geser • Scroll untuk zoom', 'Drag to pan • Scroll to zoom')}</p>
         </div>
 
-        {/* Viewport Kontainer */}
+        {/* Viewport Peta Center */}
         <div
           ref={viewportRef}
-          className="w-full h-[70vh] overflow-auto rounded-xl border-2 border-slate-200 bg-slate-50 touch-none select-none overscroll-contain flex items-center justify-center p-4"
+          className="w-full h-[70vh] overflow-auto rounded-xl border-2 border-slate-200 bg-slate-900 touch-none select-none overscroll-contain flex items-center justify-center p-4 relative"
           onWheel={handleWheel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -395,17 +392,48 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
           onTouchMove={(event) => event.preventDefault()}
           onContextMenu={(event) => event.preventDefault()}
         >
-          {/* Pembungkus Gambar dengan Transform Scale */}
+          {/* Pembungkus Gambar Peta + Pin Checkpoints */}
           <div 
-            className="flex items-center justify-center transition-transform duration-75 ease-out origin-center min-w-full min-h-full"
+            className="relative flex items-center justify-center transition-transform duration-75 ease-out origin-center"
             style={{ transform: `scale(${zoom})` }}
           >
-            <img
-              src={mapImage.src}
-              alt={t('Peta kawasan', 'Area map')}
-              className="max-w-full max-h-[65vh] object-contain cursor-grab pointer-events-none"
-              draggable={false}
-            />
+            <div className="relative inline-block">
+              <img
+                src={mapImage.src}
+                alt={t('Peta kawasan', 'Area map')}
+                className="max-w-full max-h-[65vh] object-contain cursor-grab pointer-events-none block rounded-lg"
+                draggable={false}
+              />
+
+              {/* RENDER PIN CHECKPOINT DARI SUPABASE (posisi_x & posisi_y) */}
+              {gameData?.checkpoints?.map((cp: any) => {
+                const isScanned = progress.scannedCheckpoints.includes(cp.id);
+                
+                const posX = cp.posisi_x ?? 50; 
+                const posY = cp.posisi_y ?? 50;
+
+                return (
+                  <div
+                    key={cp.id}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer z-10 transition-transform hover:scale-125"
+                    style={{ left: `${posX}%`, top: `${posY}%` }}
+                    title={lang === 'id' ? cp.nama_id : cp.nama_en}
+                  >
+                    {isScanned ? (
+                      /* Pin SUDAH DI-SCAN (Hijau & Ceklis) */
+                      <div className="w-7 h-7 bg-emerald-500 border-2 border-white text-white rounded-full flex items-center justify-center shadow-lg animate-bounce">
+                        <Check size={16} strokeWidth={3} />
+                      </div>
+                    ) : (
+                      /* Pin BELUM DI-SCAN (Titik Gelap) */
+                      <div className="w-6 h-6 bg-slate-700/90 border-2 border-white rounded-full shadow-md flex items-center justify-center">
+                        <div className="w-2 h-2 bg-white/70 rounded-full"></div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -447,7 +475,6 @@ function ScannerView({ onSuccess, onCancel, t, lang }: any) {
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
     
-    // Small timeout to allow DOM element to be ready
     setTimeout(() => {
       scanner = new Html5QrcodeScanner(
         "qr-reader",
@@ -463,7 +490,7 @@ function ScannerView({ onSuccess, onCancel, t, lang }: any) {
           onSuccess(text);
         },
         (error) => {
-          // quiet fail on scan error
+          // quiet fail
         }
       );
     }, 100);
@@ -566,7 +593,7 @@ function InventoryView({ gameData, progress, t, lang }: any) {
         </p>
       </div>
 
-      {/* Per Section (skill, bonus, riset, dll) dibuatkan card glass tersendiri */}
+      {/* Terpisah Per-section (Skill, Bonus, Riset, dll) */}
       {types.map((type: any) => (
         <div 
           key={type} 
