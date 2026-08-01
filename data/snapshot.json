@@ -1,0 +1,59 @@
+{
+  "zones": [
+    {
+      "id": "zona-1",
+      "urutan": 1,
+      "nama_id": "Pelatihan & Inkubasi",
+      "nama_en": "Training & Incubation",
+      "warna_tema": "#3b82f6"
+    },
+    {
+      "id": "zona-2",
+      "urutan": 2,
+      "nama_id": "Riset & Pengembangan",
+      "nama_en": "Research & Development",
+      "warna_tema": "#f97316"
+    },
+    {
+      "id": "zona-3",
+      "urutan": 3,
+      "nama_id": "Industri & Perdagangan",
+      "nama_en": "Industry & Trade",
+      "warna_tema": "#8b5cf6"
+    }
+  ],
+  "checkpoints": [
+    {"id": "cp-1-01", "zona_id": "zona-1", "kode_qr": "qr-1-01", "jenis_titik": "zona", "status_akses": "publik", "bonus": false, "nama_id": "Pusat IoT", "nama_en": "IoT Center", "teaser_id": "Teaser 1-01", "teaser_en": "Teaser 1-01", "reveal_id": "Reveal 1-01", "reveal_en": "Reveal 1-01", "posisi_x": 10, "posisi_y": 10},
+    {"id": "cp-1-02", "zona_id": "zona-1", "kode_qr": "qr-1-02", "jenis_titik": "zona", "status_akses": "publik", "bonus": false, "nama_id": "Lab 3D", "nama_en": "3D Lab", "teaser_id": "Teaser 1-02", "teaser_en": "Teaser 1-02", "reveal_id": "Reveal 1-02", "reveal_en": "Reveal 1-02", "posisi_x": 20, "posisi_y": 10},
+    {"id": "cp-1-03", "zona_id": "zona-1", "kode_qr": "qr-1-03", "jenis_titik": "zona", "status_akses": "publik", "bonus": false, "nama_id": "Ruang Coding", "nama_en": "Coding Room", "teaser_id": "Teaser 1-03", "teaser_en": "Teaser 1-03", "reveal_id": "Reveal 1-03", "reveal_en": "Reveal 1-03", "posisi_x": 30, "posisi_y": 10},
+    {"id": "cp-1-04", "zona_id": "zona-1", "kode_qr": "qr-1-04", "jenis_titik": "zona", "status_akses": "publik", "bonus": true, "nama_id": "Kantin Inovasi", "nama_en": "Innovation Canteen", "teaser_id": "Teaser 1-04", "teaser_en": "Teaser 1-04", "reveal_id": "Reveal 1-04", "reveal_en": "Reveal 1-04", "posisi_x": 40, "posisi_y": 10},
+    {"id": "cp-2-01", "zona_id": "zona-2", "kode_qr": "qr-2-01", "jenis_titik": "zona", "status_akses": "publik", "bonus": false, "nama_id": "Pusat Riset", "nama_en": "Research Center", "teaser_id": "Teaser 2-01", "teaser_en": "Teaser 2-01", "reveal_id": "Reveal 2-01", "reveal_en": "Reveal 2-01", "posisi_x": 10, "posisi_y": 40},
+    {"id": "cp-2-02", "zona_id": "zona-2", "kode_qr": "qr-2-02", "jenis_titik": "zona", "status_akses": "publik", "bonus": false, "nama_id": "Lab Material", "nama_en": "Material Lab", "teaser_id": "Teaser 2-02", "teaser_en": "Teaser 2-02", "reveal_id": "Reveal 2-02", "reveal_en": "Reveal 2-02", "posisi_x": 20, "posisi_y": 40},
+    {"id": "cp-2-03", "zona_id": "zona-2", "kode_qr": "qr-2-03", "jenis_titik": "zona", "status_akses": "publik", "bonus": false, "nama_id": "Uji Mutu", "nama_en": "Quality Control", "teaser_id": "Teaser 2-03", "teaser_en": "Teaser 2-03", "reveal_id": "Reveal 2-03", "reveal_en": "Reveal 2-03", "posisi_x": 30, "posisi_y": 40},
+    {"id": "cp-2-04", "zona_id": "zona-2", "kode_qr": "qr-2-04", "jenis_titik": "zona", "status_akses": "publik", "bonus": true, "nama_id": "Taman R&D", "nama_en": "R&D Park", "teaser_id": "Teaser 2-04", "teaser_en": "Teaser 2-04", "reveal_id": "Reveal 2-04", "reveal_en": "Reveal 2-04", "posisi_x": 40, "posisi_y": 40},
+    {"id": "cp-3-01", "zona_id": "zona-3", "kode_qr": "qr-3-01", "jenis_titik": "zona", "status_akses": "publik", "bonus": false, "nama_id": "Area Industri", "nama_en": "Industry Area", "teaser_id": "Teaser 3-01", "teaser_en": "Teaser 3-01", "reveal_id": "Reveal 3-01", "reveal_en": "Reveal 3-01", "posisi_x": 10, "posisi_y": 70},
+    {"id": "cp-3-02", "zona_id": "zona-3", "kode_qr": "qr-3-02", "jenis_titik": "zona", "status_akses": "publik", "bonus": false, "nama_id": "Pabrik Mini", "nama_en": "Mini Factory", "teaser_id": "Teaser 3-02", "teaser_en": "Teaser 3-02", "reveal_id": "Reveal 3-02", "reveal_en": "Reveal 3-02", "posisi_x": 20, "posisi_y": 70},
+    {"id": "cp-3-03", "zona_id": "zona-3", "kode_qr": "qr-3-03", "jenis_titik": "zona", "status_akses": "publik", "bonus": false, "nama_id": "Gudang", "nama_en": "Warehouse", "teaser_id": "Teaser 3-03", "teaser_en": "Teaser 3-03", "reveal_id": "Reveal 3-03", "reveal_en": "Reveal 3-03", "posisi_x": 30, "posisi_y": 70},
+    {"id": "cp-3-04", "zona_id": "zona-3", "kode_qr": "qr-3-04", "jenis_titik": "zona", "status_akses": "publik", "bonus": true, "nama_id": "Toko Produk", "nama_en": "Product Store", "teaser_id": "Teaser 3-04", "teaser_en": "Teaser 3-04", "reveal_id": "Reveal 3-04", "reveal_en": "Reveal 3-04", "posisi_x": 40, "posisi_y": 70}
+  ],
+  "cards": [
+    {"id": "card-1-01", "checkpoint_id": "cp-1-01", "tipe": "skill", "ikon_url": null, "tags": ["sensor", "konektivitas"]},
+    {"id": "card-1-02", "checkpoint_id": "cp-1-02", "tipe": "skill", "ikon_url": null, "tags": ["desain", "manufaktur"]},
+    {"id": "card-1-03", "checkpoint_id": "cp-1-03", "tipe": "skill", "ikon_url": null, "tags": ["software", "logika"]},
+    {"id": "card-1-04", "checkpoint_id": "cp-1-04", "tipe": "bonus", "ikon_url": null, "tags": ["energi"]},
+    {"id": "card-2-01", "checkpoint_id": "cp-2-01", "tipe": "riset", "ikon_url": null, "tags": ["analisis", "data"]},
+    {"id": "card-2-02", "checkpoint_id": "cp-2-02", "tipe": "riset", "ikon_url": null, "tags": ["material", "uji"]},
+    {"id": "card-2-03", "checkpoint_id": "cp-2-03", "tipe": "riset", "ikon_url": null, "tags": ["kualitas", "standar"]},
+    {"id": "card-2-04", "checkpoint_id": "cp-2-04", "tipe": "bonus", "ikon_url": null, "tags": ["hijau"]},
+    {"id": "card-3-01", "checkpoint_id": "cp-3-01", "tipe": "pasar", "ikon_url": null, "tags": ["skala", "produksi"]},
+    {"id": "card-3-02", "checkpoint_id": "cp-3-02", "tipe": "pasar", "ikon_url": null, "tags": ["perakitan", "cepat"]},
+    {"id": "card-3-03", "checkpoint_id": "cp-3-03", "tipe": "pasar", "ikon_url": null, "tags": ["logistik", "distribusi"]},
+    {"id": "card-3-04", "checkpoint_id": "cp-3-04", "tipe": "bonus", "ikon_url": null, "tags": ["branding"]}
+  ],
+  "ideas": [
+    {"id": "ide-01", "nama_id": "Alat Kesehatan Portabel", "nama_en": "Portable Health Device", "ikon_url": null, "tag_dibutuhkan": ["sensor", "desain", "analisis", "kualitas"]},
+    {"id": "ide-02", "nama_id": "Aplikasi Logistik Desa", "nama_en": "Village Logistics App", "ikon_url": null, "tag_dibutuhkan": ["software", "data", "logistik"]},
+    {"id": "ide-03", "nama_id": "Kapal Nelayan Modern", "nama_en": "Modern Fishing Boat", "ikon_url": null, "tag_dibutuhkan": ["material", "standar", "produksi", "energi"]},
+    {"id": "ide-04", "nama_id": "Produk UMKM Naik Kelas", "nama_en": "Upgraded SME Product", "ikon_url": null, "tag_dibutuhkan": ["perakitan", "branding", "distribusi"]}
+  ]
+}
