@@ -241,6 +241,7 @@ export default function GameApp() {
             <BlueprintView 
               gameData={gameData} 
               progress={progress} 
+              onBackToMap={() => setView('map')}
               t={t}
               lang={lang}
             />
@@ -720,9 +721,9 @@ function ScannerView({ onSuccess, onCancel, t, lang }: any) {
 function TeaserView({ card, onContinue, t, lang }: any) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div>
-        <h2 className="text-2xl font-black text-slate-800">{t('Data Ditemukan!', 'Data Found!')}</h2>
-        <p className="text-slate-500 mt-1">{t('Mengekstrak informasi...', 'Extracting information...')}</p>
+      <div className="rounded-2xl border border-white/30 bg-white/15 px-6 py-5 shadow-xl backdrop-blur-md">
+        <h2 className="text-2xl font-black text-white">{t('Data Ditemukan!', 'Data Found!')}</h2>
+        <p className="text-slate-100 mt-1">{t('Mengekstrak informasi...', 'Extracting information...')}</p>
       </div>
 
       <div className="w-48 h-64 bg-slate-200 rounded-xl border-4 border-dashed border-slate-300 flex items-center justify-center shadow-inner relative overflow-hidden">
@@ -743,11 +744,11 @@ function TeaserView({ card, onContinue, t, lang }: any) {
 function RevealView({ card, checkpoint, onClose, t, lang }: any) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] text-center space-y-6 animate-in zoom-in-90 duration-500">
-      <div className="w-full text-center">
+      <div className="w-full text-center rounded-2xl border border-white/30 bg-white/15 px-6 py-5 shadow-xl backdrop-blur-md">
         <span className="inline-block px-3 py-1 bg-amber-100 text-amber-700 font-bold text-xs rounded-full uppercase tracking-wider mb-3">
           {card.tipe}
         </span>
-        <h2 className="text-3xl font-black text-slate-800 leading-tight">
+        <h2 className="text-3xl font-black text-white leading-tight">
           {lang === 'id' ? checkpoint?.nama_id : checkpoint?.nama_en}
         </h2>
       </div>
@@ -806,24 +807,28 @@ function InventoryView({ gameData, progress, t, lang }: any) {
               return (
                 <div 
                   key={card.id} 
-                  className={`aspect-[3/4] rounded-xl flex flex-col items-center justify-center p-2 text-center transition-all ${
+                  className={`relative aspect-[3/4] rounded-xl overflow-hidden transition-all ${
                     isCollected 
-                      ? 'bg-white/90 shadow-md border border-white text-slate-900' 
-                      : 'bg-white/10 border border-white/20 text-white/50 backdrop-blur-sm'
+                      ? 'shadow-md border border-white/40' 
+                      : 'bg-white/10 border border-white/20 flex items-center justify-center backdrop-blur-sm'
                   }`}
                 >
                   {isCollected ? (
                     <>
                       {card.ikon_url ? (
-                        <img src={card.ikon_url} alt="" className="w-8 h-8 object-contain mb-2" />
+                        <img src={card.ikon_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
                       ) : (
-                        <div className="w-8 h-8 bg-blue-500/20 text-blue-600 rounded-full flex items-center justify-center mb-2 font-bold text-xs">
-                          ✓
+                        <div className="absolute inset-0 bg-white/90 flex items-center justify-center">
+                          <div className="w-8 h-8 bg-blue-500/20 text-blue-600 rounded-full flex items-center justify-center font-bold text-xs">
+                            ✓
+                          </div>
                         </div>
                       )}
-                      <span className="text-[10px] font-bold leading-tight text-slate-800">
-                        {lang === 'id' ? checkpoint?.nama_id : checkpoint?.nama_en}
-                      </span>
+                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent px-1.5 pt-5 pb-1.5">
+                        <span className="text-[10px] font-bold leading-tight text-white line-clamp-2">
+                          {lang === 'id' ? checkpoint?.nama_id : checkpoint?.nama_en}
+                        </span>
+                      </div>
                     </>
                   ) : (
                     <span className="font-bold text-2xl text-white/40">?</span>
@@ -838,7 +843,7 @@ function InventoryView({ gameData, progress, t, lang }: any) {
   );
 }
 
-function BlueprintView({ gameData, progress, t, lang }: any) {
+function BlueprintView({ gameData, progress, onBackToMap, t, lang }: any) {
   const idea = gameData.ideas.find((i: any) => i.id === progress.ideaId);
   
   let baseScore = progress.collectedCards.length;
@@ -906,9 +911,11 @@ function BlueprintView({ gameData, progress, t, lang }: any) {
       </div>
       
       <button 
-        className="w-full py-4 rounded-xl bg-slate-200 text-slate-400 font-bold text-lg cursor-not-allowed"
+        onClick={onBackToMap}
+        className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-slate-900 text-white font-bold text-lg shadow-xl shadow-slate-900/20 active:scale-95 transition-all"
       >
-        {t('Selesai & Bagikan', 'Finish & Share')} (Coming Soon)
+        <Map size={20} />
+        {t('Kembali ke Peta Kawasan', 'Back to Area Map')}
       </button>
     </div>
   );
