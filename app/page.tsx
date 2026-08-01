@@ -7,7 +7,7 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import { Map, ScanLine, LayoutGrid, Hammer, X, Check, ArrowRight, Lock, Star, Plus, Minus, RotateCcw } from 'lucide-react';
 
 import snapshotData from '../data/snapshot.json';
-import mapImage from '../imageclip.svg';
+import mapImage from '../imageclip_opt.webp';
 import pageBackground from '../gedung-solo-technopark_169.jpeg';
 
 type ViewState = 'landing' | 'map' | 'scanner' | 'teaser' | 'reveal' | 'inventory' | 'blueprint';
