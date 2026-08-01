@@ -331,17 +331,18 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, t }: 
 
 function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
   const [manualCode, setManualCode] = useState('');
-  const [zoom, setZoom] = useState(1);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const viewportRef = useRef<HTMLDivElement>(null);
+  const [zoomDisplay, setZoomDisplay] = useState(100);
   
-  // Touch tracking for Android / Mobile gestures (pinch-zoom and pan)
-  const touchStateRef = useRef<{
-    x: number;
-    y: number;
-    dist: number;
-  } | null>(null);
+  // Direct refs for 60FPS GPU hardware acceleration without React re-render overhead
+  const scaleRef = useRef(1);
+  const panRef = useRef({ x: 0, y: 0 });
+  const isDraggingRef = useRef(false);
+  const pointerStartRef = useRef({ x: 0, y: 0 });
+  const touchStateRef = useRef<{ x: number; y: number; dist: number } | null>(null);
+  const rafIdRef = useRef<number | null>(null);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapContentRef = useRef<HTMLDivElement>(null);
 
   // DOKUMEN WARNA BERDASARKAN ZONA_ID
   const getZoneColor = (zonaId: string) => {
@@ -379,42 +380,70 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
     }
   };
 
-  const clampZoom = (value: number) => Math.min(3, Math.max(0.5, value));
+  const clampScale = (val: number) => Math.min(3, Math.max(0.5, val));
 
-  const handleZoomIn = () => setZoom((prev) => clampZoom(prev + 0.25));
-  const handleZoomOut = () => setZoom((prev) => clampZoom(prev - 0.25));
-  const handleResetZoom = () => setZoom(1);
+  // Fast GPU hardware layer transform update via requestAnimationFrame
+  const applyTransform = () => {
+    if (mapContentRef.current) {
+      mapContentRef.current.style.transform = `translate3d(${panRef.current.x}px, ${panRef.current.y}px, 0) scale(${scaleRef.current})`;
+    }
+  };
+
+  const scheduleUpdate = () => {
+    if (rafIdRef.current === null) {
+      rafIdRef.current = requestAnimationFrame(() => {
+        applyTransform();
+        setZoomDisplay(Math.round(scaleRef.current * 100));
+        rafIdRef.current = null;
+      });
+    }
+  };
+
+  const handleZoomIn = () => {
+    scaleRef.current = clampScale(scaleRef.current + 0.25);
+    scheduleUpdate();
+  };
+
+  const handleZoomOut = () => {
+    scaleRef.current = clampScale(scaleRef.current - 0.25);
+    scheduleUpdate();
+  };
+
+  const handleResetZoom = () => {
+    scaleRef.current = 1;
+    panRef.current = { x: 0, y: 0 };
+    scheduleUpdate();
+  };
 
   const handleWheel = (event: React.WheelEvent) => {
     event.preventDefault();
     const direction = event.deltaY > 0 ? -0.1 : 0.1;
-    setZoom((prev) => clampZoom(prev + direction));
+    scaleRef.current = clampScale(scaleRef.current + direction);
+    scheduleUpdate();
   };
 
   // Mouse Pointer Dragging (Desktop)
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.pointerType === 'touch') return;
     event.preventDefault();
-    setIsDragging(true);
-    setDragStart({ x: event.clientX, y: event.clientY });
+    isDraggingRef.current = true;
+    pointerStartRef.current = { x: event.clientX - panRef.current.x, y: event.clientY - panRef.current.y };
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === 'touch' || !isDragging || !viewportRef.current) return;
+    if (event.pointerType === 'touch' || !isDraggingRef.current) return;
     event.preventDefault();
-    const deltaX = event.clientX - dragStart.x;
-    const deltaY = event.clientY - dragStart.y;
-
-    viewportRef.current.scrollLeft -= deltaX;
-    viewportRef.current.scrollTop -= deltaY;
-
-    setDragStart({ x: event.clientX, y: event.clientY });
+    panRef.current = {
+      x: event.clientX - pointerStartRef.current.x,
+      y: event.clientY - pointerStartRef.current.y,
+    };
+    scheduleUpdate();
   };
 
-  const stopDragging = (event: React.PointerEvent<HTMLDivElement>) => {
+  const stopPointerDragging = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.pointerType === 'touch') return;
-    setIsDragging(false);
+    isDraggingRef.current = false;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -424,8 +453,8 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 1) {
       touchStateRef.current = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY,
+        x: e.touches[0].clientX - panRef.current.x,
+        y: e.touches[0].clientY - panRef.current.y,
         dist: 0,
       };
     } else if (e.touches.length === 2) {
@@ -435,22 +464,23 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
       );
       const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
       const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-      touchStateRef.current = { x: midX, y: midY, dist };
+      touchStateRef.current = {
+        x: midX - panRef.current.x,
+        y: midY - panRef.current.y,
+        dist,
+      };
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!touchStateRef.current || !viewportRef.current) return;
+    if (!touchStateRef.current) return;
 
     if (e.touches.length === 1) {
-      const dx = e.touches[0].clientX - touchStateRef.current.x;
-      const dy = e.touches[0].clientY - touchStateRef.current.y;
-
-      viewportRef.current.scrollLeft -= dx;
-      viewportRef.current.scrollTop -= dy;
-
-      touchStateRef.current.x = e.touches[0].clientX;
-      touchStateRef.current.y = e.touches[0].clientY;
+      panRef.current = {
+        x: e.touches[0].clientX - touchStateRef.current.x,
+        y: e.touches[0].clientY - touchStateRef.current.y,
+      };
+      scheduleUpdate();
     } else if (e.touches.length === 2) {
       if (e.cancelable) e.preventDefault();
 
@@ -463,16 +493,15 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
 
       if (touchStateRef.current.dist > 0) {
         const ratio = dist / touchStateRef.current.dist;
-        setZoom((prev) => clampZoom(prev * ratio));
+        scaleRef.current = clampScale(scaleRef.current * ratio);
       }
 
-      const dx = midX - touchStateRef.current.x;
-      const dy = midY - touchStateRef.current.y;
-
-      viewportRef.current.scrollLeft -= dx;
-      viewportRef.current.scrollTop -= dy;
-
-      touchStateRef.current = { x: midX, y: midY, dist };
+      panRef.current = {
+        x: midX - touchStateRef.current.x,
+        y: midY - touchStateRef.current.y,
+      };
+      touchStateRef.current.dist = dist;
+      scheduleUpdate();
     }
   };
 
@@ -491,63 +520,68 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
         </div>
 
         {/* Viewport Peta Center */}
-        <div className="relative w-full h-[65vh] rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-900">
+        <div 
+          ref={containerRef}
+          className="relative w-full h-[65vh] rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-900 touch-none select-none flex items-center justify-center p-4"
+          onWheel={handleWheel}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={stopPointerDragging}
+          onPointerLeave={stopPointerDragging}
+          onPointerCancel={stopPointerDragging}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
+          onContextMenu={(event) => event.preventDefault()}
+        >
+          {/* Pembungkus Zoom GPU Accelerated Layer */}
           <div
-            ref={viewportRef}
-            className="w-full h-full overflow-auto touch-pan-x touch-pan-y select-none overscroll-contain flex items-center justify-center p-4 relative"
-            onWheel={handleWheel}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={stopDragging}
-            onPointerLeave={stopDragging}
-            onPointerCancel={stopDragging}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onTouchCancel={handleTouchEnd}
-            onContextMenu={(event) => event.preventDefault()}
+            ref={mapContentRef}
+            className="transition-transform duration-75 ease-out origin-center flex items-center justify-center min-w-full min-h-full"
+            style={{ 
+              willChange: 'transform',
+              transform: `translate3d(${panRef.current.x}px, ${panRef.current.y}px, 0) scale(${scaleRef.current})`,
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden'
+            }}
           >
-            {/* Pembungkus Zoom */}
-            <div
-              className="transition-transform duration-75 ease-out origin-center flex items-center justify-center min-w-full min-h-full"
-              style={{ transform: `scale(${zoom})` }}
-            >
-              <div className="relative inline-block w-fit h-fit">
-                <img
-                  src={mapImage.src}
-                  alt={t('Peta kawasan', 'Area map')}
-                  className="max-w-full max-h-[60vh] object-contain cursor-grab pointer-events-none block rounded-lg"
-                  draggable={false}
-                />
+            <div className="relative inline-block w-fit h-fit">
+              <img
+                src={mapImage.src}
+                alt={t('Peta kawasan', 'Area map')}
+                className="max-w-full max-h-[60vh] object-contain cursor-grab pointer-events-none block rounded-lg"
+                draggable={false}
+                style={{ imageRendering: 'auto' }}
+              />
 
-                {/* RENDER PIN CHECKPOINT DENGAN WARNA DINAMIS */}
-                {gameData?.checkpoints?.map((cp: any) => {
-                  const isScanned = progress.scannedCheckpoints.includes(cp.id);
-                  const posX = cp.posisi_x ?? 50;
-                  const posY = cp.posisi_y ?? 50;
-                  
-                  const zoneColor = getZoneColor(cp.zona_id);
+              {/* RENDER PIN CHECKPOINT DENGAN WARNA DINAMIS */}
+              {gameData?.checkpoints?.map((cp: any) => {
+                const isScanned = progress.scannedCheckpoints.includes(cp.id);
+                const posX = cp.posisi_x ?? 50;
+                const posY = cp.posisi_y ?? 50;
+                
+                const zoneColor = getZoneColor(cp.zona_id);
 
-                  return (
-                    <div
-                      key={cp.id}
-                      className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer z-10 transition-transform hover:scale-125 active:scale-110"
-                      style={{ left: `${posX}%`, top: `${posY}%` }}
-                      title={lang === 'id' ? cp.nama_id : cp.nama_en}
-                    >
-                      {isScanned ? (
-                        <div className="w-7 h-7 bg-emerald-500 border-2 border-white text-white rounded-full flex items-center justify-center shadow-lg animate-bounce">
-                          <Check size={16} strokeWidth={3} />
-                        </div>
-                      ) : (
-                        <div className={`w-6 h-6 ${zoneColor.bg} border-2 border-white rounded-full shadow-md flex items-center justify-center`}>
-                          <div className={`w-2 h-2 ${zoneColor.dot} rounded-full`}></div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                return (
+                  <div
+                    key={cp.id}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer z-10 transition-transform hover:scale-125 active:scale-110"
+                    style={{ left: `${posX}%`, top: `${posY}%` }}
+                    title={lang === 'id' ? cp.nama_id : cp.nama_en}
+                  >
+                    {isScanned ? (
+                      <div className="w-7 h-7 bg-emerald-500 border-2 border-white text-white rounded-full flex items-center justify-center shadow-lg animate-bounce">
+                        <Check size={16} strokeWidth={3} />
+                      </div>
+                    ) : (
+                      <div className={`w-6 h-6 ${zoneColor.bg} border-2 border-white rounded-full shadow-md flex items-center justify-center`}>
+                        <div className={`w-2 h-2 ${zoneColor.dot} rounded-full`}></div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -578,7 +612,7 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
 
           {/* Zoom Level Badge */}
           <div className="absolute top-3 left-3 z-20 bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/20 text-[11px] font-bold text-white shadow-md">
-            {Math.round(zoom * 100)}%
+            {zoomDisplay}%
           </div>
         </div>
 
