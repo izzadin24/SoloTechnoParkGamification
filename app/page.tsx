@@ -523,7 +523,7 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
         {/* Viewport Peta Center */}
         <div 
           ref={containerRef}
-          className="relative w-full h-[65vh] rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-100 touch-none select-none flex items-center justify-center p-4"
+          className="relative w-full h-[65vh] rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-900 touch-none select-none flex items-center justify-center p-4"
           onWheel={handleWheel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -587,24 +587,24 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
           </div>
 
           {/* Floating Mobile/Touch Controls (Zoom In, Zoom Out, Reset) */}
-          <div className="absolute bottom-3 right-3 z-20 flex flex-col gap-2 bg-white/95 backdrop-blur-md p-1.5 rounded-xl border border-slate-200/80 shadow-lg text-slate-700">
+          <div className="absolute bottom-3 right-3 z-20 flex flex-col gap-2 bg-slate-900/80 backdrop-blur-md p-1.5 rounded-xl border border-white/20 shadow-lg">
             <button
               onClick={handleZoomIn}
-              className="p-2 hover:bg-slate-100 active:bg-slate-200 text-slate-700 rounded-lg transition-all"
+              className="p-2 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white rounded-lg transition-all"
               title={t('Perbesar', 'Zoom In')}
             >
               <Plus size={18} />
             </button>
             <button
               onClick={handleZoomOut}
-              className="p-2 hover:bg-slate-100 active:bg-slate-200 text-slate-700 rounded-lg transition-all"
+              className="p-2 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white rounded-lg transition-all"
               title={t('Perkecil', 'Zoom Out')}
             >
               <Minus size={18} />
             </button>
             <button
               onClick={handleResetZoom}
-              className="p-2 hover:bg-slate-100 active:bg-slate-200 text-slate-700 rounded-lg transition-all"
+              className="p-2 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white rounded-lg transition-all"
               title={t('Reset Zoom', 'Reset Zoom')}
             >
               <RotateCcw size={16} />
@@ -612,7 +612,7 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
           </div>
 
           {/* Zoom Level Badge */}
-          <div className="absolute top-3 left-3 z-20 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-lg border border-slate-200/80 text-[11px] font-bold text-slate-800 shadow-md">
+          <div className="absolute top-3 left-3 z-20 bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/20 text-[11px] font-bold text-white shadow-md">
             {zoomDisplay}%
           </div>
         </div>
@@ -755,7 +755,7 @@ function RevealView({ card, checkpoint, onClose, t, lang }: any) {
 
       <div className="w-56 h-72 rounded-2xl shadow-2xl overflow-hidden border-4 border-white bg-slate-100 flex items-center justify-center">
         {card.ikon_url ? (
-          <img src={card.ikon_url} alt="Card" className="w-full h-full object-cover" />
+          <img src={card.ikon_url} alt="Card" className="w-2/3 h-2/3 object-contain" />
         ) : (
           <div className="text-slate-400 font-medium">[{t('Gambar', 'Image')}]</div>
         )}
@@ -807,28 +807,26 @@ function InventoryView({ gameData, progress, t, lang }: any) {
               return (
                 <div 
                   key={card.id} 
-                  className={`relative aspect-[3/4] rounded-xl overflow-hidden transition-all ${
+                  className={`aspect-[3/4] rounded-xl flex flex-col p-2 text-center transition-all ${
                     isCollected 
-                      ? 'shadow-md border border-white/40' 
-                      : 'bg-white/10 border border-white/20 flex items-center justify-center backdrop-blur-sm'
+                      ? 'bg-white/90 shadow-md border border-white text-slate-900' 
+                      : 'bg-white/10 border border-dashed border-white/30 text-white/50 backdrop-blur-sm items-center justify-center'
                   }`}
                 >
                   {isCollected ? (
                     <>
-                      {card.ikon_url ? (
-                        <img src={card.ikon_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                      ) : (
-                        <div className="absolute inset-0 bg-white/90 flex items-center justify-center">
-                          <div className="w-8 h-8 bg-blue-500/20 text-blue-600 rounded-full flex items-center justify-center font-bold text-xs">
+                      <div className="flex-1 min-h-0 flex items-center justify-center">
+                        {card.ikon_url ? (
+                          <img src={card.ikon_url} alt="" className="max-w-full max-h-full object-contain" />
+                        ) : (
+                          <div className="w-12 h-12 bg-blue-500/20 text-blue-600 rounded-full flex items-center justify-center font-bold text-xs">
                             ✓
                           </div>
-                        </div>
-                      )}
-                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent px-1.5 pt-5 pb-1.5">
-                        <span className="text-[10px] font-bold leading-tight text-white line-clamp-2">
-                          {lang === 'id' ? checkpoint?.nama_id : checkpoint?.nama_en}
-                        </span>
+                        )}
                       </div>
+                      <span className="text-[10px] font-bold leading-tight text-slate-800 mt-1.5 shrink-0">
+                        {lang === 'id' ? checkpoint?.nama_id : checkpoint?.nama_en}
+                      </span>
                     </>
                   ) : (
                     <span className="font-bold text-2xl text-white/40">?</span>

@@ -37,18 +37,18 @@
     {"id": "cp-3-04", "zona_id": "zona-3", "kode_qr": "qr-3-04", "jenis_titik": "zona", "status_akses": "publik", "bonus": true, "nama_id": "Toko Produk", "nama_en": "Product Store", "teaser_id": "Teaser 3-04", "teaser_en": "Teaser 3-04", "reveal_id": "Reveal 3-04", "reveal_en": "Reveal 3-04", "posisi_x": 40, "posisi_y": 70}
   ],
   "cards": [
-    {"id": "card-1-01", "checkpoint_id": "cp-1-01", "tipe": "skill", "ikon_url": null, "tags": ["sensor", "konektivitas"]},
-    {"id": "card-1-02", "checkpoint_id": "cp-1-02", "tipe": "skill", "ikon_url": null, "tags": ["desain", "manufaktur"]},
-    {"id": "card-1-03", "checkpoint_id": "cp-1-03", "tipe": "skill", "ikon_url": null, "tags": ["software", "logika"]},
-    {"id": "card-1-04", "checkpoint_id": "cp-1-04", "tipe": "bonus", "ikon_url": null, "tags": ["energi"]},
-    {"id": "card-2-01", "checkpoint_id": "cp-2-01", "tipe": "riset", "ikon_url": null, "tags": ["analisis", "data"]},
-    {"id": "card-2-02", "checkpoint_id": "cp-2-02", "tipe": "riset", "ikon_url": null, "tags": ["material", "uji"]},
-    {"id": "card-2-03", "checkpoint_id": "cp-2-03", "tipe": "riset", "ikon_url": null, "tags": ["kualitas", "standar"]},
-    {"id": "card-2-04", "checkpoint_id": "cp-2-04", "tipe": "bonus", "ikon_url": null, "tags": ["hijau"]},
-    {"id": "card-3-01", "checkpoint_id": "cp-3-01", "tipe": "pasar", "ikon_url": null, "tags": ["skala", "produksi"]},
-    {"id": "card-3-02", "checkpoint_id": "cp-3-02", "tipe": "pasar", "ikon_url": null, "tags": ["perakitan", "cepat"]},
-    {"id": "card-3-03", "checkpoint_id": "cp-3-03", "tipe": "pasar", "ikon_url": null, "tags": ["logistik", "distribusi"]},
-    {"id": "card-3-04", "checkpoint_id": "cp-3-04", "tipe": "bonus", "ikon_url": null, "tags": ["branding"]}
+    {"id": "card-1-01", "checkpoint_id": "cp-1-01", "tipe": "skill", "ikon_url": "https://ouasxrqtjnnacxyfacmm.supabase.co/storage/v1/object/public/cards/icon_otomasi.jpeg", "tags": ["sensor", "konektivitas"]},
+    {"id": "card-1-02", "checkpoint_id": "cp-1-02", "tipe": "skill", "ikon_url": "https://ouasxrqtjnnacxyfacmm.supabase.co/storage/v1/object/public/cards/icon_pengelasan.jpeg", "tags": ["desain", "manufaktur"]},
+    {"id": "card-1-03", "checkpoint_id": "cp-1-03", "tipe": "skill", "ikon_url": "https://ouasxrqtjnnacxyfacmm.supabase.co/storage/v1/object/public/cards/icon_desain.jpeg", "tags": ["software", "logika"]},
+    {"id": "card-1-04", "checkpoint_id": "cp-1-04", "tipe": "bonus", "ikon_url": "https://ouasxrqtjnnacxyfacmm.supabase.co/storage/v1/object/public/cards/icon_inkubasi.jpeg", "tags": ["energi"]},
+    {"id": "card-2-01", "checkpoint_id": "cp-2-01", "tipe": "riset", "ikon_url": "https://ouasxrqtjnnacxyfacmm.supabase.co/storage/v1/object/public/cards/icon_riset.jpeg", "tags": ["analisis", "data"]},
+    {"id": "card-2-02", "checkpoint_id": "cp-2-02", "tipe": "riset", "ikon_url": "https://ouasxrqtjnnacxyfacmm.supabase.co/storage/v1/object/public/cards/icon_purwarupa.jpeg", "tags": ["material", "uji"]},
+    {"id": "card-2-03", "checkpoint_id": "cp-2-03", "tipe": "riset", "ikon_url": "https://ouasxrqtjnnacxyfacmm.supabase.co/storage/v1/object/public/cards/icon_pameran.jpeg", "tags": ["kualitas", "standar"]},
+    {"id": "card-2-04", "checkpoint_id": "cp-2-04", "tipe": "bonus", "ikon_url": "https://ouasxrqtjnnacxyfacmm.supabase.co/storage/v1/object/public/cards/icon_biru.jpeg", "tags": ["hijau"]},
+    {"id": "card-3-01", "checkpoint_id": "cp-3-01", "tipe": "pasar", "ikon_url": "https://ouasxrqtjnnacxyfacmm.supabase.co/storage/v1/object/public/cards/icon_kolaborasi.jpeg", "tags": ["skala", "produksi"]},
+    {"id": "card-3-02", "checkpoint_id": "cp-3-02", "tipe": "pasar", "ikon_url": "https://ouasxrqtjnnacxyfacmm.supabase.co/storage/v1/object/public/cards/icon_pasar.jpeg", "tags": ["perakitan", "cepat"]},
+    {"id": "card-3-03", "checkpoint_id": "cp-3-03", "tipe": "pasar", "ikon_url": "https://ouasxrqtjnnacxyfacmm.supabase.co/storage/v1/object/public/cards/icon_sertifikasi.jpeg", "tags": ["logistik", "distribusi"]},
+    {"id": "card-3-04", "checkpoint_id": "cp-3-04", "tipe": "bonus", "ikon_url": "https://ouasxrqtjnnacxyfacmm.supabase.co/storage/v1/object/public/cards/icon_publik.jpeg", "tags": ["branding"]}
   ],
   "ideas": [
     {"id": "ide-01", "nama_id": "Alat Kesehatan Portabel", "nama_en": "Portable Health Device", "ikon_url": null, "tag_dibutuhkan": ["sensor", "desain", "analisis", "kualitas"]},
