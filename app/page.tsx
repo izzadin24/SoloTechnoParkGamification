@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GameData, fetchGameData } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { Map, ScanLine, LayoutGrid, Hammer, X, Check, ArrowRight, Lock, Star } from 'lucide-react';
+import { Map, ScanLine, LayoutGrid, Hammer, X, Check, ArrowRight, Lock, Star, Plus, Minus, RotateCcw } from 'lucide-react';
 
 import snapshotData from '../data/snapshot.json';
 import mapImage from '../imageclip.svg';
@@ -335,37 +335,44 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const viewportRef = useRef<HTMLDivElement>(null);
+  
+  // Touch tracking for Android / Mobile gestures (pinch-zoom and pan)
+  const touchStateRef = useRef<{
+    x: number;
+    y: number;
+    dist: number;
+  } | null>(null);
 
-  // 1. DOKUMEN WARNA BERDASARKAN ZONA_ID (Atur warna sesuai selera)
+  // DOKUMEN WARNA BERDASARKAN ZONA_ID
   const getZoneColor = (zonaId: string) => {
     switch (zonaId) {
       case 'zona-1':
         return {
-          bg: 'bg-amber-500',        // Warna Oranye/Kuning
+          bg: 'bg-amber-500',
           border: 'border-amber-200',
           dot: 'bg-amber-200',
         };
       case 'zona-2':
         return {
-          bg: 'bg-blue-700',      // Warna Hijau
+          bg: 'bg-blue-700',
           border: 'border-blue-300',
           dot: 'bg-blue-200',
         };
       case 'zona-3':
         return {
-          bg: 'bg-rose-500',         // Warna Merah
+          bg: 'bg-rose-500',
           border: 'border-rose-200',
           dot: 'bg-rose-200',
         };
       case 'zona-4':
         return {
-          bg: 'bg-purple-500',       // Warna Ungu (opsional)
+          bg: 'bg-purple-500',
           border: 'border-purple-200',
           dot: 'bg-purple-200',
         };
       default:
         return {
-          bg: 'bg-sky-500',          // Warna Biru Default
+          bg: 'bg-sky-500',
           border: 'border-sky-200',
           dot: 'bg-sky-200',
         };
@@ -374,13 +381,19 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
 
   const clampZoom = (value: number) => Math.min(3, Math.max(0.5, value));
 
+  const handleZoomIn = () => setZoom((prev) => clampZoom(prev + 0.25));
+  const handleZoomOut = () => setZoom((prev) => clampZoom(prev - 0.25));
+  const handleResetZoom = () => setZoom(1);
+
   const handleWheel = (event: React.WheelEvent) => {
     event.preventDefault();
     const direction = event.deltaY > 0 ? -0.1 : 0.1;
     setZoom((prev) => clampZoom(prev + direction));
   };
 
+  // Mouse Pointer Dragging (Desktop)
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'touch') return;
     event.preventDefault();
     setIsDragging(true);
     setDragStart({ x: event.clientX, y: event.clientY });
@@ -388,8 +401,7 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDragging || !viewportRef.current) return;
-
+    if (event.pointerType === 'touch' || !isDragging || !viewportRef.current) return;
     event.preventDefault();
     const deltaX = event.clientX - dragStart.x;
     const deltaY = event.clientY - dragStart.y;
@@ -401,79 +413,172 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
   };
 
   const stopDragging = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'touch') return;
     setIsDragging(false);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
   };
 
+  // Touch Handlers for Android Mobile Devices (1-finger pan, 2-finger pinch & pan)
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 1) {
+      touchStateRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+        dist: 0,
+      };
+    } else if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      touchStateRef.current = { x: midX, y: midY, dist };
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!touchStateRef.current || !viewportRef.current) return;
+
+    if (e.touches.length === 1) {
+      const dx = e.touches[0].clientX - touchStateRef.current.x;
+      const dy = e.touches[0].clientY - touchStateRef.current.y;
+
+      viewportRef.current.scrollLeft -= dx;
+      viewportRef.current.scrollTop -= dy;
+
+      touchStateRef.current.x = e.touches[0].clientX;
+      touchStateRef.current.y = e.touches[0].clientY;
+    } else if (e.touches.length === 2) {
+      if (e.cancelable) e.preventDefault();
+
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+
+      if (touchStateRef.current.dist > 0) {
+        const ratio = dist / touchStateRef.current.dist;
+        setZoom((prev) => clampZoom(prev * ratio));
+      }
+
+      const dx = midX - touchStateRef.current.x;
+      const dy = midY - touchStateRef.current.y;
+
+      viewportRef.current.scrollLeft -= dx;
+      viewportRef.current.scrollTop -= dy;
+
+      touchStateRef.current = { x: midX, y: midY, dist };
+    }
+  };
+
+  const handleTouchEnd = () => {
+    touchStateRef.current = null;
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 relative">
+        <div className="flex items-center justify-between mb-3">
           <h2 className="font-black text-xl">{t('Peta Kawasan', 'Area Map')}</h2>
-          <p className="text-xs font-medium text-slate-500">
-            {t('Drag untuk geser • Scroll untuk zoom', 'Drag to pan • Scroll to zoom')}
-          </p>
+          <span className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-200/60">
+            {t('Gunakan 2 jari untuk zoom/geser', 'Use 2 fingers to zoom/pan')}
+          </span>
         </div>
 
         {/* Viewport Peta Center */}
-        <div
-          ref={viewportRef}
-          className="w-full h-[65vh] overflow-auto rounded-xl border-2 border-slate-200 bg-slate-900 touch-none select-none overscroll-contain flex items-center justify-center p-4 relative"
-          onWheel={handleWheel}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={stopDragging}
-          onPointerLeave={stopDragging}
-          onPointerCancel={stopDragging}
-          onTouchMove={(event) => event.preventDefault()}
-          onContextMenu={(event) => event.preventDefault()}
-        >
-          {/* Pembungkus Zoom */}
+        <div className="relative w-full h-[65vh] rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-900">
           <div
-            className="transition-transform duration-75 ease-out origin-center flex items-center justify-center min-w-full min-h-full"
-            style={{ transform: `scale(${zoom})` }}
+            ref={viewportRef}
+            className="w-full h-full overflow-auto touch-pan-x touch-pan-y select-none overscroll-contain flex items-center justify-center p-4 relative"
+            onWheel={handleWheel}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={stopDragging}
+            onPointerLeave={stopDragging}
+            onPointerCancel={stopDragging}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
+            onContextMenu={(event) => event.preventDefault()}
           >
-            <div className="relative inline-block w-fit h-fit">
-              <img
-                src={mapImage.src}
-                alt={t('Peta kawasan', 'Area map')}
-                className="max-w-full max-h-[60vh] object-contain cursor-grab pointer-events-none block rounded-lg"
-                draggable={false}
-              />
+            {/* Pembungkus Zoom */}
+            <div
+              className="transition-transform duration-75 ease-out origin-center flex items-center justify-center min-w-full min-h-full"
+              style={{ transform: `scale(${zoom})` }}
+            >
+              <div className="relative inline-block w-fit h-fit">
+                <img
+                  src={mapImage.src}
+                  alt={t('Peta kawasan', 'Area map')}
+                  className="max-w-full max-h-[60vh] object-contain cursor-grab pointer-events-none block rounded-lg"
+                  draggable={false}
+                />
 
-              {/* RENDER PIN CHECKPOINT DENGAN WARNA DINAMIS */}
-              {gameData?.checkpoints?.map((cp: any) => {
-                const isScanned = progress.scannedCheckpoints.includes(cp.id);
-                const posX = cp.posisi_x ?? 50;
-                const posY = cp.posisi_y ?? 50;
-                
-                // Ambil warna berdasarkan zona_id dari Supabase
-                const zoneColor = getZoneColor(cp.zona_id);
+                {/* RENDER PIN CHECKPOINT DENGAN WARNA DINAMIS */}
+                {gameData?.checkpoints?.map((cp: any) => {
+                  const isScanned = progress.scannedCheckpoints.includes(cp.id);
+                  const posX = cp.posisi_x ?? 50;
+                  const posY = cp.posisi_y ?? 50;
+                  
+                  const zoneColor = getZoneColor(cp.zona_id);
 
-                return (
-                  <div
-                    key={cp.id}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer z-10 transition-transform hover:scale-125"
-                    style={{ left: `${posX}%`, top: `${posY}%` }}
-                    title={lang === 'id' ? cp.nama_id : cp.nama_en}
-                  >
-                    {isScanned ? (
-                      /* Pin jika SUDAH di-scan (tetap hijau centang) */
-                      <div className="w-7 h-7 bg-emerald-500 border-2 border-white text-white rounded-full flex items-center justify-center shadow-lg animate-bounce">
-                        <Check size={16} strokeWidth={3} />
-                      </div>
-                    ) : (
-                      /* Pin BELUM di-scan (Warnanya mengikuti zonanya) */
-                      <div className={`w-6 h-6 ${zoneColor.bg} border-2 border-white rounded-full shadow-md flex items-center justify-center`}>
-                        <div className={`w-2 h-2 ${zoneColor.dot} rounded-full`}></div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                  return (
+                    <div
+                      key={cp.id}
+                      className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer z-10 transition-transform hover:scale-125 active:scale-110"
+                      style={{ left: `${posX}%`, top: `${posY}%` }}
+                      title={lang === 'id' ? cp.nama_id : cp.nama_en}
+                    >
+                      {isScanned ? (
+                        <div className="w-7 h-7 bg-emerald-500 border-2 border-white text-white rounded-full flex items-center justify-center shadow-lg animate-bounce">
+                          <Check size={16} strokeWidth={3} />
+                        </div>
+                      ) : (
+                        <div className={`w-6 h-6 ${zoneColor.bg} border-2 border-white rounded-full shadow-md flex items-center justify-center`}>
+                          <div className={`w-2 h-2 ${zoneColor.dot} rounded-full`}></div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
+          </div>
+
+          {/* Floating Mobile/Touch Controls (Zoom In, Zoom Out, Reset) */}
+          <div className="absolute bottom-3 right-3 z-20 flex flex-col gap-2 bg-slate-900/80 backdrop-blur-md p-1.5 rounded-xl border border-white/20 shadow-lg">
+            <button
+              onClick={handleZoomIn}
+              className="p-2 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white rounded-lg transition-all"
+              title={t('Perbesar', 'Zoom In')}
+            >
+              <Plus size={18} />
+            </button>
+            <button
+              onClick={handleZoomOut}
+              className="p-2 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white rounded-lg transition-all"
+              title={t('Perkecil', 'Zoom Out')}
+            >
+              <Minus size={18} />
+            </button>
+            <button
+              onClick={handleResetZoom}
+              className="p-2 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white rounded-lg transition-all"
+              title={t('Reset Zoom', 'Reset Zoom')}
+            >
+              <RotateCcw size={16} />
+            </button>
+          </div>
+
+          {/* Zoom Level Badge */}
+          <div className="absolute top-3 left-3 z-20 bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/20 text-[11px] font-bold text-white shadow-md">
+            {Math.round(zoom * 100)}%
           </div>
         </div>
 
@@ -484,7 +589,7 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
             <span>{t('Zona 1', 'Zone 1')}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow-sm"></span>
+            <span className="w-3 h-3 rounded-full bg-blue-700 inline-block shadow-sm"></span>
             <span>{t('Zona 2', 'Zone 2')}</span>
           </div>
           <div className="flex items-center gap-1.5">
