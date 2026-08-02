@@ -145,33 +145,56 @@ export default function AdminPage() {
     e.preventDefault();
     if (!selectedCheckpointId) return;
 
+    // 2. Pastikan session admin benar-benar aktif SAAT update dipanggil
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    console.log('DEBUG: session saat mau update', currentSession);
+    if (!currentSession) {
+      alert('Session admin tidak ditemukan — silakan login ulang');
+      return;
+    }
+
+    const updatedFields = {
+      nama_id: formData.nama_id,
+      nama_en: formData.nama_en,
+      teaser_id: formData.teaser_id,
+      teaser_en: formData.teaser_en,
+      reveal_id: formData.reveal_id,
+      reveal_en: formData.reveal_en,
+      status_akses: formData.status_akses,
+    };
+
+    console.log('DEBUG: mencoba update', selectedCheckpointId, updatedFields);
+
     setIsSaving(true);
     try {
-      const { error } = await supabase
+      // 1. Rantai .select() setelah .update() untuk menangkap data hasil update & RLS block
+      const { data, error } = await supabase
         .from('checkpoint')
-        .update({
-          nama_id: formData.nama_id,
-          nama_en: formData.nama_en,
-          teaser_id: formData.teaser_id,
-          teaser_en: formData.teaser_en,
-          reveal_id: formData.reveal_id,
-          reveal_en: formData.reveal_en,
-          status_akses: formData.status_akses,
-        })
-        .eq('id', selectedCheckpointId);
+        .update(updatedFields)
+        .eq('id', selectedCheckpointId)
+        .select();
+
+      console.log('DEBUG: hasil update', { data, error });
 
       if (error) {
-        alert('Gagal menyimpan: ' + error.message);
-      } else {
-        setSaveSuccess(true);
-        setTimeout(() => {
-          setSaveSuccess(false);
-        }, 2000);
-
-        loadCheckpoints();
+        alert('Gagal simpan (error): ' + error.message);
+        return;
       }
-    } catch (err) {
-      alert('Gagal menyimpan data');
+
+      if (!data || data.length === 0) {
+        alert('Update tidak mengenai baris manapun — kemungkinan diblokir RLS atau ID salah');
+        return;
+      }
+
+      // Success notification (2 detik)
+      setSaveSuccess(true);
+      setTimeout(() => {
+        setSaveSuccess(false);
+      }, 2000);
+
+      loadCheckpoints();
+    } catch (err: any) {
+      alert('Gagal simpan (exception): ' + (err?.message || err));
     } finally {
       setIsSaving(false);
     }
