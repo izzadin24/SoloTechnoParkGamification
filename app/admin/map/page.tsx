@@ -25,7 +25,8 @@ import {
   Maximize2,
   RefreshCw,
   Upload,
-  Image as ImageIcon
+  Image as ImageIcon,
+  QrCode
 } from 'lucide-react';
 
 export default function AdminMapPage() {
@@ -741,8 +742,11 @@ export default function AdminMapPage() {
                     <MapPin size={14} className="text-white" />
                   </div>
 
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 bg-slate-900/90 backdrop-blur-sm border border-slate-700 rounded text-[10px] font-bold text-white whitespace-nowrap shadow-md group-hover:scale-110 pointer-events-none">
-                    {cp.nama_id}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 bg-slate-900/90 backdrop-blur-sm border border-slate-700 rounded text-[10px] font-bold text-white whitespace-nowrap shadow-md group-hover:scale-110 pointer-events-none flex items-center gap-1">
+                    <span>{cp.nama_id}</span>
+                    <span className="text-amber-400 font-mono text-[9px] bg-slate-950 px-1 py-0.2 rounded border border-slate-800">
+                      QR: {cp.kode_qr || '-'}
+                    </span>
                   </div>
                 </div>
               );
@@ -810,6 +814,31 @@ export default function AdminMapPage() {
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
                       placeholder="Example: Techno Building 1"
                     />
+                  </div>
+                </div>
+
+                {/* Kode QR Manual Input */}
+                <div>
+                  <label className="block text-xs text-slate-300 mb-1 flex items-center justify-between">
+                    <span>Kode QR (Value Database) — <span className="text-slate-400">kode_qr</span></span>
+                    <button
+                      type="button"
+                      onClick={() => setCpForm({ ...cpForm, kode_qr: `STP-QR-${Math.random().toString(36).substring(2, 8).toUpperCase()}` })}
+                      className="text-[10px] text-blue-400 hover:underline font-bold"
+                    >
+                      + Auto Generate QR
+                    </button>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      value={cpForm.kode_qr}
+                      onChange={(e) => setCpForm({ ...cpForm, kode_qr: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-blue-500"
+                      placeholder="Contoh: STP-QR-A12B3"
+                    />
+                    <QrCode size={15} className="absolute right-3 top-2.5 text-blue-400 pointer-events-none" />
                   </div>
                 </div>
 

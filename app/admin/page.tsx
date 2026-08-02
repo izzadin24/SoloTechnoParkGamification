@@ -15,7 +15,11 @@ import {
   Image as ImageIcon,
   Trash2,
   X,
-  CreditCard
+  CreditCard,
+  QrCode,
+  Sparkles,
+  Copy,
+  Check
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -34,11 +38,13 @@ export default function AdminPage() {
   const [isLoadingCheckpoints, setIsLoadingCheckpoints] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [copiedQr, setCopiedQr] = useState(false);
 
   // Form fields state - Checkpoint
   const [formData, setFormData] = useState<{
     nama_id: string;
     nama_en: string;
+    kode_qr: string;
     teaser_id: string;
     teaser_en: string;
     reveal_id: string;
@@ -47,6 +53,7 @@ export default function AdminPage() {
   }>({
     nama_id: '',
     nama_en: '',
+    kode_qr: '',
     teaser_id: '',
     teaser_en: '',
     reveal_id: '',
@@ -125,6 +132,7 @@ export default function AdminPage() {
     setFormData({
       nama_id: cp.nama_id || '',
       nama_en: cp.nama_en || '',
+      kode_qr: cp.kode_qr || '',
       teaser_id: cp.teaser_id || '',
       teaser_en: cp.teaser_en || '',
       reveal_id: cp.reveal_id || '',
@@ -206,6 +214,14 @@ export default function AdminPage() {
     setLoginError(null);
   };
 
+  // Copy QR Code to clipboard
+  const handleCopyQr = () => {
+    if (!formData.kode_qr) return;
+    navigator.clipboard.writeText(formData.kode_qr);
+    setCopiedQr(true);
+    setTimeout(() => setCopiedQr(false), 2000);
+  };
+
   // Delete/Remove Icon action
   const handleRemoveIcon = () => {
     setSelectedIconFile(null);
@@ -256,10 +272,11 @@ export default function AdminPage() {
         }
       }
 
-      // 2. Update Checkpoint Table
+      // 2. Update Checkpoint Table (including kode_qr)
       const updatedFields = {
         nama_id: formData.nama_id,
         nama_en: formData.nama_en,
+        kode_qr: formData.kode_qr,
         teaser_id: formData.teaser_id,
         teaser_en: formData.teaser_en,
         reveal_id: formData.reveal_id,
@@ -335,7 +352,7 @@ export default function AdminPage() {
               <Lock size={28} />
             </div>
             <h1 className="text-2xl font-bold text-white tracking-tight">Admin Solo Technopark</h1>
-            <p className="text-xs text-slate-400">Masuk untuk mengelola konten checkpoint & kartu</p>
+            <p className="text-xs text-slate-400">Masuk untuk mengelola konten checkpoint & kode QR</p>
           </div>
 
           {loginError && (
@@ -404,7 +421,7 @@ export default function AdminPage() {
             <Building size={20} />
           </div>
           <div>
-            <h1 className="font-bold text-lg text-white leading-tight">Kelola Konten Checkpoint</h1>
+            <h1 className="font-bold text-lg text-white leading-tight">Kelola Konten & Kode QR Checkpoint</h1>
             <p className="text-xs text-slate-400">{session.user?.email}</p>
           </div>
         </div>
@@ -430,10 +447,10 @@ export default function AdminPage() {
       {/* Main Content */}
       <main className="max-w-3xl mx-auto p-6 pb-20">
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-          {/* Dropdown Checkpoint */}
+          {/* Dropdown Checkpoint dengan Tampilan Kode QR Langsung */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-              Pilih Checkpoint ({checkpoints.length} Tersedia)
+              Pilih Gedung / Checkpoint ({checkpoints.length} Tersedia)
             </label>
             {isLoadingCheckpoints ? (
               <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-400 animate-pulse">
@@ -447,7 +464,7 @@ export default function AdminPage() {
               >
                 {checkpoints.map((cp) => (
                   <option key={cp.id} value={cp.id}>
-                    {cp.nama_id} ({cp.id})
+                    {cp.nama_id} — [QR: {cp.kode_qr || 'Belum Ada'}]
                   </option>
                 ))}
               </select>
@@ -456,12 +473,13 @@ export default function AdminPage() {
 
           <hr className="border-slate-800" />
 
-          {/* Form Edit Konten */}
+          {/* Form Edit Konten & Kode QR */}
           <form onSubmit={handleSave} className="space-y-6">
             {/* SECTION 1: KONTEN CHECKPOINT */}
             <div className="space-y-4">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-blue-400">
-                1. Detail Konten Checkpoint
+              <h2 className="text-xs font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
+                <Building size={16} />
+                <span>1. Detail Konten Gedung & Kode QR Scanner</span>
               </h2>
 
               {/* Nama Gedung */}
@@ -490,6 +508,48 @@ export default function AdminPage() {
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
+              </div>
+
+              {/* KODE QR TEXTFIELD PROMINENT CARD */}
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                    <QrCode size={16} />
+                    <span>Kode QR Scanner Gedung (Tabel Checkpoint: `kode_qr`)</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCopyQr}
+                      className="text-[11px] px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-700 font-bold transition-all flex items-center gap-1"
+                    >
+                      {copiedQr ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                      <span>{copiedQr ? 'Tersalin' : 'Salin Kode'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, kode_qr: `STP-QR-${Math.random().toString(36).substring(2, 8).toUpperCase()}` })}
+                      className="text-[11px] px-2.5 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 rounded-lg font-bold transition-all"
+                    >
+                      + Generate QR Baru
+                    </button>
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={formData.kode_qr}
+                    onChange={(e) => setFormData({ ...formData, kode_qr: e.target.value })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white font-mono font-bold focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 tracking-wide"
+                    placeholder="Masukkan string kode QR fisik (Contoh: STP-QR-A12B3)"
+                  />
+                  <QrCode size={18} className="absolute right-3.5 top-3.5 text-amber-400 pointer-events-none" />
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Value ini harus sama persis dengan string teks yang di-encode pada Stiker/QR Code fisik gedung ini.
+                </p>
               </div>
 
               {/* Teaser */}
@@ -704,7 +764,7 @@ export default function AdminPage() {
               ) : (
                 <>
                   <Save size={18} />
-                  <span>Simpan Perubahan Konten & Kartu</span>
+                  <span>Simpan Perubahan Konten & Kode QR</span>
                 </>
               )}
             </button>
