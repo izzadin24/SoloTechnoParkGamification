@@ -108,6 +108,14 @@ export default function GameApp() {
       return;
     }
 
+    if (checkpoint.status_akses === 'dilarang') {
+      alert(lang === 'id' 
+        ? 'Area ini tidak boleh dikunjungi. Checkpoint tidak tersedia di sini.' 
+        : 'This area is off-limits. No checkpoint is available here.');
+      setView('map');
+      return;
+    }
+
     if (progress.scannedCheckpoints.includes(checkpoint.id)) {
       alert(lang === 'id' ? 'Checkpoint ini sudah diselesaikan' : 'Checkpoint already completed');
       setView('map');
@@ -523,7 +531,7 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
         {/* Viewport Peta Center */}
         <div 
           ref={containerRef}
-          className="relative w-full h-[65vh] rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-900 touch-none select-none flex items-center justify-center p-4"
+          className="relative w-full h-[65vh] rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-500 touch-none select-none flex items-center justify-center p-4"
           onWheel={handleWheel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -559,19 +567,33 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
               {/* RENDER PIN CHECKPOINT DENGAN WARNA DINAMIS */}
               {gameData?.checkpoints?.map((cp: any) => {
                 const isScanned = progress.scannedCheckpoints.includes(cp.id);
+                const isRestricted = cp.status_akses === 'dilarang';
                 const posX = cp.posisi_x ?? 50;
                 const posY = cp.posisi_y ?? 50;
                 
                 const zoneColor = getZoneColor(cp.zona_id);
+                const restrictedLabel = t('Area terlarang - tidak boleh dikunjungi', 'Restricted area - off-limits');
+                const pinLabel = lang === 'id' ? cp.nama_id : cp.nama_en;
 
                 return (
                   <div
                     key={cp.id}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer z-10 transition-transform hover:scale-125 active:scale-110"
+                    onClick={() => {
+                      if (isRestricted) {
+                        alert(`${pinLabel}\n\n${restrictedLabel}`);
+                      }
+                    }}
+                    className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 transition-transform ${
+                      isRestricted ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-125 active:scale-110'
+                    }`}
                     style={{ left: `${posX}%`, top: `${posY}%` }}
-                    title={lang === 'id' ? cp.nama_id : cp.nama_en}
+                    title={isRestricted ? `${pinLabel} — ${restrictedLabel}` : pinLabel}
                   >
-                    {isScanned ? (
+                    {isRestricted ? (
+                      <div className="w-6 h-6 bg-slate-700 border-2 border-red-400 rounded-full shadow-md flex items-center justify-center active:scale-90 transition-transform">
+                        <Lock size={11} className="text-red-300" strokeWidth={2.5} />
+                      </div>
+                    ) : isScanned ? (
                       <div className="w-7 h-7 bg-emerald-500 border-2 border-white text-white rounded-full flex items-center justify-center shadow-lg animate-bounce">
                         <Check size={16} strokeWidth={3} />
                       </div>
