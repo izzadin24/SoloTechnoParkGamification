@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GameData, fetchGameData } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { Map, ScanLine, LayoutGrid, Hammer, X, Check, ArrowRight, Lock, Star, Plus, Minus, RotateCcw, Building } from 'lucide-react';
+import { Map, ScanLine, LayoutGrid, Hammer, X, Check, ArrowRight, Lock, Star, Plus, Minus, RotateCcw, Building, QrCode, Compass, Keyboard } from 'lucide-react';
 
 import snapshotData from '../data/snapshot.json';
 import mapImage from '../imageclip_opt.webp';
@@ -165,30 +165,39 @@ export default function GameApp() {
         backgroundAttachment: 'fixed'
       }}
     >
-      <div className="min-h-screen w-full bg-slate-950/55 backdrop-blur-[2px]">
-        {view !== 'landing' && (
-          <header className="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 py-3 flex justify-between items-center">
-            <div className="font-bold text-lg text-slate-800">
+      <div className="min-h-screen w-full bg-slate-950/55 backdrop-blur-[2px] flex flex-col justify-between relative">
+        {/* Top Header Bar for non-map sub-pages */}
+        {view !== 'landing' && view !== 'map' && (
+          <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 py-2.5 flex justify-between items-center shadow-sm">
+            <div className="font-extrabold text-lg text-slate-800 tracking-tight">
               Jelajah STP
             </div>
-            <div className="flex gap-2">
-              <button onClick={() => setView('map')} className={`p-2 rounded-lg ${view === 'map' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
-                <Map size={20} />
-              </button>
-              <button onClick={() => setView('scanner')} className={`p-2 rounded-lg ${view === 'scanner' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
-                <ScanLine size={20} />
-              </button>
-              <button onClick={() => setView('inventory')} className={`p-2 rounded-lg ${view === 'inventory' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
-                <LayoutGrid size={20} />
-              </button>
-              <button onClick={() => setView('blueprint')} className={`p-2 rounded-lg ${view === 'blueprint' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
-                <Hammer size={20} />
-              </button>
+            
+            <div className="flex items-center gap-2">
+              {/* Language Switcher */}
+              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button 
+                  onClick={() => setLang('id')} 
+                  className={`px-2.5 py-0.5 rounded-lg text-xs font-bold transition-all ${lang === 'id' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  ID
+                </button>
+                <button 
+                  onClick={() => setLang('en')} 
+                  className={`px-2.5 py-0.5 rounded-lg text-xs font-bold transition-all ${lang === 'en' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  EN
+                </button>
+              </div>
+
+              <div className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60 uppercase">
+                {view === 'inventory' ? t('Kartu', 'Cards') : view === 'blueprint' ? 'Blueprint' : view === 'scanner' ? 'Scanner' : view}
+              </div>
             </div>
           </header>
         )}
 
-        <main className="max-w-md mx-auto p-4 pb-24">
+        <main className={view === 'map' ? "w-full h-[calc(100vh-4rem)] relative overflow-hidden" : "max-w-md mx-auto p-4 pb-24 flex-1 w-full"}>
           {view === 'landing' && (
             <LandingView 
               lang={lang} 
@@ -209,6 +218,7 @@ export default function GameApp() {
               onScanManual={handleScanSuccess}
               t={t} 
               lang={lang}
+              setLang={setLang}
             />
           )}
           
@@ -263,6 +273,41 @@ export default function GameApp() {
             />
           )}
         </main>
+
+        {/* Fixed Bottom Navigation Bar */}
+        {view !== 'landing' && (
+          <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/80 py-2.5 px-6 shadow-2xl flex justify-around items-center select-none">
+            <button
+              onClick={() => setView('map')}
+              className={`flex flex-col items-center justify-center gap-1 transition-all ${
+                view === 'map' ? 'text-blue-600 font-black scale-105' : 'text-slate-500 hover:text-slate-800 font-medium'
+              }`}
+            >
+              <Map size={22} strokeWidth={view === 'map' ? 2.5 : 2} />
+              <span className="text-[10px] tracking-wider uppercase font-bold">{t('PETA', 'MAP')}</span>
+            </button>
+            
+            <button
+              onClick={() => setView('inventory')}
+              className={`flex flex-col items-center justify-center gap-1 transition-all ${
+                view === 'inventory' ? 'text-blue-600 font-black scale-105' : 'text-slate-500 hover:text-slate-800 font-medium'
+              }`}
+            >
+              <LayoutGrid size={22} strokeWidth={view === 'inventory' ? 2.5 : 2} />
+              <span className="text-[10px] tracking-wider uppercase font-bold">{t('KARTU', 'CARDS')}</span>
+            </button>
+            
+            <button
+              onClick={() => setView('blueprint')}
+              className={`flex flex-col items-center justify-center gap-1 transition-all ${
+                view === 'blueprint' ? 'text-blue-600 font-black scale-105' : 'text-slate-500 hover:text-slate-800 font-medium'
+              }`}
+            >
+              <Hammer size={22} strokeWidth={view === 'blueprint' ? 2.5 : 2} />
+              <span className="text-[10px] tracking-wider uppercase font-bold">BLUEPRINT</span>
+            </button>
+          </nav>
+        )}
       </div>
     </div>
   );
@@ -346,8 +391,7 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, t }: 
   );
 }
 
-function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
-  const [manualCode, setManualCode] = useState('');
+function MapView({ gameData, progress, onScan, onScanManual, t, lang, setLang }: any) {
   const [zoomDisplay, setZoomDisplay] = useState<number | null>(null);
   const [zoomBadgeVisible, setZoomBadgeVisible] = useState(false);
   const [selectedCheckpoint, setSelectedCheckpoint] = useState<any | null>(null);
@@ -540,199 +584,193 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 relative">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-black text-xl">{t('Peta Kawasan', 'Area Map')}</h2>
-          <span className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-200/60">
-            {t('Gunakan 2 jari untuk zoom/geser', 'Use 2 fingers to zoom/pan')}
-          </span>
+    <div className="relative w-full h-full min-h-[calc(100vh-4rem)] overflow-hidden bg-slate-950 select-none touch-none animate-in fade-in duration-300">
+      {/* Top Floating App Title & Language Switcher */}
+      <div className="absolute top-4 left-4 right-4 z-30 flex items-center justify-between pointer-events-none">
+        <div className="pointer-events-auto bg-white/95 backdrop-blur-md border border-slate-200 px-4 py-2 rounded-2xl shadow-xl font-black text-slate-800 text-base flex items-center gap-2">
+          <Map className="text-blue-600" size={20} />
+          <span>Jelajah STP</span>
         </div>
 
-        {/* Viewport Peta Center */}
-        <div 
-          ref={containerRef}
-          className="relative w-full h-[65vh] rounded-xl overflow-hidden border-2 border-slate-200 bg-slate-500 touch-none select-none flex items-center justify-center p-4"
-          onWheel={handleWheel}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={stopPointerDragging}
-          onPointerLeave={stopPointerDragging}
-          onPointerCancel={stopPointerDragging}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onTouchCancel={handleTouchEnd}
-          onContextMenu={(event) => event.preventDefault()}
-        >
-          {/* Pembungkus Zoom GPU Accelerated Layer */}
-          <div
-            ref={mapContentRef}
-            className="transition-transform duration-75 ease-out origin-center flex items-center justify-center min-w-full min-h-full"
-            style={{ 
-              willChange: 'transform',
-              transform: `translate3d(${panRef.current.x}px, ${panRef.current.y}px, 0) scale(${scaleRef.current})`,
-              backfaceVisibility: 'hidden',
-              WebkitBackfaceVisibility: 'hidden'
-            }}
+        {/* High Contrast Prominent Language Switcher Toggle (ID / EN) */}
+        <div className="pointer-events-auto flex bg-white/95 backdrop-blur-md p-1 rounded-2xl border border-slate-200 shadow-xl">
+          <button 
+            type="button"
+            onClick={() => setLang('id')} 
+            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+              lang === 'id' ? 'bg-blue-600 text-white shadow-md scale-105' : 'text-slate-600 hover:text-slate-900'
+            }`}
           >
-            <div className="relative inline-block w-fit h-fit">
-              <img
-                src={mapImage.src}
-                alt={t('Peta kawasan', 'Area map')}
-                className="max-w-full max-h-[60vh] object-contain cursor-grab pointer-events-none block rounded-lg"
-                draggable={false}
-                style={{ imageRendering: 'auto' }}
-              />
+            ID
+          </button>
+          <button 
+            type="button"
+            onClick={() => setLang('en')} 
+            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+              lang === 'en' ? 'bg-blue-600 text-white shadow-md scale-105' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            EN
+          </button>
+        </div>
+      </div>
 
-              {/* RENDER PIN CHECKPOINT DENGAN WARNA DINAMIS */}
-              {gameData?.checkpoints?.map((cp: any) => {
-                const isScanned = progress.scannedCheckpoints.includes(cp.id);
-                const isLastVisited = progress.lastVisitedCheckpointId === cp.id;
-                const isRestricted = cp.status_akses === 'dilarang';
-                const posX = cp.posisi_x ?? 50;
-                const posY = cp.posisi_y ?? 50;
-                
-                const zoneColor = getZoneColor(cp.zona_id);
-                const restrictedLabel = t('Area terlarang - tidak boleh dikunjungi', 'Restricted area - off-limits');
-                const pinLabel = lang === 'id' ? cp.nama_id : cp.nama_en;
+      {/* Viewport Peta Full-Bleed Center */}
+      <div 
+        ref={containerRef}
+        className="relative w-full h-full overflow-hidden bg-slate-900 touch-none select-none flex items-center justify-center"
+        onWheel={handleWheel}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={stopPointerDragging}
+        onPointerLeave={stopPointerDragging}
+        onPointerCancel={stopPointerDragging}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+        onContextMenu={(event) => event.preventDefault()}
+      >
+        {/* Pembungkus Zoom GPU Accelerated Layer */}
+        <div
+          ref={mapContentRef}
+          className="transition-transform duration-75 ease-out origin-center flex items-center justify-center min-w-full min-h-full"
+          style={{ 
+            willChange: 'transform',
+            transform: `translate3d(${panRef.current.x}px, ${panRef.current.y}px, 0) scale(${scaleRef.current})`,
+            backfaceVisibility: 'hidden',
+            WebkitBackfaceVisibility: 'hidden'
+          }}
+        >
+          <div className="relative inline-block w-fit h-fit">
+            <img
+              src={mapImage.src}
+              alt={t('Peta kawasan', 'Area map')}
+              className="max-w-full max-h-[85vh] object-contain cursor-grab pointer-events-none block rounded-xl shadow-2xl"
+              draggable={false}
+              style={{ imageRendering: 'auto' }}
+            />
 
-                return (
-                  <div
-                    key={cp.id}
-                    onClick={() => {
-                      setSelectedCheckpoint(cp);
-                      setIsPopupVisible(true);
-                      if (popupTimeoutRef.current) {
-                        window.clearTimeout(popupTimeoutRef.current);
-                      }
-                      popupTimeoutRef.current = window.setTimeout(() => {
-                        setIsPopupVisible(false);
-                        window.setTimeout(() => setSelectedCheckpoint(null), 180);
-                      }, 2500);
-                    }}
-                    className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 transition-transform ${
-                      isRestricted ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-125 active:scale-110'
-                    }`}
-                    style={{ left: `${posX}%`, top: `${posY}%` }}
-                    title={isRestricted ? `${pinLabel} — ${restrictedLabel}` : pinLabel}
-                  >
-                    {isRestricted ? (
-                      <div className={`w-6 h-6 bg-slate-700 border-2 border-red-400 rounded-full shadow-md flex items-center justify-center active:scale-90 transition-transform ${isLastVisited ? 'ring-4 ring-amber-300 ring-offset-2' : ''}`}>
-                        <Lock size={11} className="text-red-300" strokeWidth={2.5} />
-                      </div>
-                    ) : isScanned ? (
-                      <div className={`w-7 h-7 bg-emerald-500 border-2 border-white text-white rounded-full flex items-center justify-center shadow-lg ${isLastVisited ? 'ring-4 ring-amber-300 ring-offset-2 animate-pulse' : 'animate-bounce'}`}>
-                        <Check size={16} strokeWidth={3} />
-                      </div>
-                    ) : (
-                      <div className={`w-6 h-6 ${zoneColor.bg} border-2 border-white rounded-full shadow-md flex items-center justify-center ${isLastVisited ? 'ring-4 ring-amber-300 ring-offset-2 animate-pulse' : ''}`}>
-                        <div className={`w-2 h-2 ${zoneColor.dot} rounded-full`}></div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+            {/* RENDER PIN CHECKPOINT DENGAN WARNA DINAMIS */}
+            {gameData?.checkpoints?.map((cp: any) => {
+              const isScanned = progress.scannedCheckpoints.includes(cp.id);
+              const isLastVisited = progress.lastVisitedCheckpointId === cp.id;
+              const isRestricted = cp.status_akses === 'dilarang';
+              const posX = cp.posisi_x ?? 50;
+              const posY = cp.posisi_y ?? 50;
+              
+              const zoneColor = getZoneColor(cp.zona_id);
+              const restrictedLabel = t('Area terlarang - tidak boleh dikunjungi', 'Restricted area - off-limits');
+              const pinLabel = lang === 'id' ? cp.nama_id : cp.nama_en;
 
-          {selectedCheckpoint && (
-            <div className={`absolute left-3 top-3 z-20 max-w-[calc(100%-1.5rem)] rounded-xl border border-slate-200 bg-white/95 px-3 py-2 shadow-lg backdrop-blur-sm transition-opacity duration-200 ${isPopupVisible ? 'opacity-100' : 'opacity-0'}`}>
-              <div className="flex items-start gap-2">
-                <Building size={16} className="mt-0.5 text-blue-600" />
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                    {t('Bangunan / area', 'Building / area')}
-                  </p>
-                  <p className="font-semibold text-slate-800">
-                    {lang === 'id' ? selectedCheckpoint.nama_id : selectedCheckpoint.nama_en}
-                  </p>
-                  <p className="text-sm text-slate-600">
-                    {selectedCheckpoint.status_akses === 'dilarang'
-                      ? t('Area terlarang', 'Restricted area')
-                      : `${t('Zona', 'Zone')}: ${gameData.zones.find((zone: any) => zone.id === selectedCheckpoint.zona_id)?.[lang === 'id' ? 'nama_id' : 'nama_en'] || '-'}`}
-                  </p>
+              return (
+                <div
+                  key={cp.id}
+                  onClick={() => {
+                    setSelectedCheckpoint(cp);
+                    setIsPopupVisible(true);
+                    if (popupTimeoutRef.current) {
+                      window.clearTimeout(popupTimeoutRef.current);
+                    }
+                    popupTimeoutRef.current = window.setTimeout(() => {
+                      setIsPopupVisible(false);
+                      window.setTimeout(() => setSelectedCheckpoint(null), 180);
+                    }, 2500);
+                  }}
+                  className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 transition-transform ${
+                    isRestricted ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-125 active:scale-110'
+                  }`}
+                  style={{ left: `${posX}%`, top: `${posY}%` }}
+                  title={isRestricted ? `${pinLabel} — ${restrictedLabel}` : pinLabel}
+                >
+                  {isRestricted ? (
+                    <div className={`w-6 h-6 bg-slate-700 border-2 border-red-400 rounded-full shadow-md flex items-center justify-center active:scale-90 transition-transform ${isLastVisited ? 'ring-4 ring-amber-300 ring-offset-2' : ''}`}>
+                      <Lock size={11} className="text-red-300" strokeWidth={2.5} />
+                    </div>
+                  ) : isScanned ? (
+                    <div className={`w-7 h-7 bg-emerald-500 border-2 border-white text-white rounded-full flex items-center justify-center shadow-lg ${isLastVisited ? 'ring-4 ring-amber-300 ring-offset-2 animate-pulse' : 'animate-bounce'}`}>
+                      <Check size={16} strokeWidth={3} />
+                    </div>
+                  ) : (
+                    <div className={`w-6 h-6 ${zoneColor.bg} border-2 border-white rounded-full shadow-md flex items-center justify-center ${isLastVisited ? 'ring-4 ring-amber-300 ring-offset-2 animate-pulse' : ''}`}>
+                      <div className={`w-2 h-2 ${zoneColor.dot} rounded-full`}></div>
+                    </div>
+                  )}
                 </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Selected Checkpoint Popup Overlay */}
+        {selectedCheckpoint && (
+          <div className={`absolute left-4 top-16 z-40 max-w-[calc(100%-2rem)] sm:max-w-xs rounded-2xl border border-slate-200 bg-white/95 px-4 py-3 shadow-2xl backdrop-blur-md transition-all duration-200 ${isPopupVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+            <div className="flex items-start gap-2.5">
+              <Building size={18} className="mt-0.5 text-blue-600 shrink-0" />
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+                  {t('Bangunan / area', 'Building / area')}
+                </p>
+                <p className="font-extrabold text-slate-800 text-sm">
+                  {lang === 'id' ? selectedCheckpoint.nama_id : selectedCheckpoint.nama_en}
+                </p>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  {selectedCheckpoint.status_akses === 'dilarang'
+                    ? t('Area terlarang', 'Restricted area')
+                    : `${t('Zona', 'Zone')}: ${gameData.zones.find((zone: any) => zone.id === selectedCheckpoint.zona_id)?.[lang === 'id' ? 'nama_id' : 'nama_en'] || '-'}`}
+                </p>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Floating Mobile/Touch Controls (Zoom In, Zoom Out, Reset) */}
-          <div className="absolute bottom-3 right-3 z-20 flex flex-col gap-2 bg-slate-900/80 backdrop-blur-md p-1.5 rounded-xl border border-white/20 shadow-lg">
+        {/* Floating Mobile/Touch Controls at Bottom Left (Reset Map + Zoom Controls) */}
+        <div className="absolute bottom-4 left-4 z-30 flex items-center gap-2">
+          {/* Reset Map Button (Round Compass Needle) */}
+          <button
+            onClick={handleResetZoom}
+            className="relative w-11 h-11 bg-slate-900/90 hover:bg-slate-800 active:scale-90 text-white rounded-full flex items-center justify-center border border-white/20 shadow-xl backdrop-blur-md transition-all group"
+            title={t('Reset Zoom / Peta', 'Reset Zoom / Map')}
+          >
+            <Compass size={22} className="text-amber-400 group-hover:rotate-45 transition-transform" />
+            <span className="absolute top-0.5 text-[8px] font-black text-amber-300">N</span>
+          </button>
+
+          {/* Zoom Controls Pill Adjacent to Reset Button */}
+          <div className="flex items-center bg-slate-900/90 backdrop-blur-md rounded-full border border-white/20 shadow-xl p-1">
             <button
               onClick={handleZoomIn}
-              className="p-2 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white rounded-lg transition-all"
+              className="p-2 hover:bg-white/20 active:bg-white/30 text-white rounded-full transition-all"
               title={t('Perbesar', 'Zoom In')}
             >
               <Plus size={18} />
             </button>
+            <div className="w-px h-4 bg-white/20 my-auto"></div>
             <button
               onClick={handleZoomOut}
-              className="p-2 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white rounded-lg transition-all"
+              className="p-2 hover:bg-white/20 active:bg-white/30 text-white rounded-full transition-all"
               title={t('Perkecil', 'Zoom Out')}
             >
               <Minus size={18} />
-            </button>
-            <button
-              onClick={handleResetZoom}
-              className="p-2 bg-white/10 hover:bg-white/20 active:bg-white/30 text-white rounded-lg transition-all"
-              title={t('Reset Zoom', 'Reset Zoom')}
-            >
-              <RotateCcw size={16} />
             </button>
           </div>
 
           {/* Zoom Level Badge */}
           {zoomDisplay !== null && (
-            <div className={`absolute top-3 left-3 z-20 bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/20 text-[11px] font-bold text-white shadow-md transition-opacity duration-300 ${zoomBadgeVisible ? 'opacity-100' : 'opacity-0'}`}>
+            <div className={`bg-slate-900/90 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20 text-[11px] font-bold text-white shadow-md transition-opacity duration-300 ${zoomBadgeVisible ? 'opacity-100' : 'opacity-0'}`}>
               {zoomDisplay}%
             </div>
           )}
         </div>
 
-        {/* LEGENDA WARNA ZONA */}
-        <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap gap-x-4 gap-y-2 text-[11px] font-semibold text-slate-700">
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-amber-500 inline-block shadow-sm"></span>
-            <span>{t('Zona 1', 'Zone 1')}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-blue-700 inline-block shadow-sm"></span>
-            <span>{t('Zona 2', 'Zone 2')}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-rose-500 inline-block shadow-sm"></span>
-            <span>{t('Zona 3', 'Zone 3')}</span>
-          </div>
-        </div>
-      </div>
-
-      <button
-        onClick={onScan}
-        className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-slate-900 text-white font-bold text-lg shadow-xl shadow-slate-900/20 active:scale-95 transition-all"
-      >
-        <ScanLine size={24} />
-        {t('Scan QR Checkpoint', 'Scan Checkpoint QR')}
-      </button>
-
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-        <p className="text-sm font-semibold mb-2">{t('Kamera bermasalah?', 'Camera issue?')}</p>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder={t('Masukkan ID manual', 'Enter manual ID')}
-            value={manualCode}
-            onChange={(e) => setManualCode(e.target.value)}
-            className="flex-1 bg-slate-100 px-3 py-2 rounded-lg border border-slate-200 outline-none focus:border-blue-500"
-          />
+        {/* Floating Action Button (FAB) for Scanning QR at Bottom Right */}
+        <div className="absolute bottom-4 right-4 z-30">
           <button
-            onClick={() => {
-              if (manualCode) onScanManual(manualCode);
-              setManualCode('');
-            }}
-            className="px-4 py-2 bg-slate-200 text-slate-800 font-bold rounded-lg hover:bg-slate-300"
+            onClick={onScan}
+            className="w-14 h-14 bg-blue-600 hover:bg-blue-500 active:scale-90 text-white rounded-full shadow-2xl flex items-center justify-center border-2 border-white transition-all cursor-pointer"
+            title={t('Scan QR Checkpoint', 'Scan Checkpoint QR')}
           >
-            {t('Kirim', 'Submit')}
+            <QrCode size={26} strokeWidth={2.2} />
           </button>
         </div>
       </div>
@@ -741,6 +779,8 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
 }
 
 function ScannerView({ onSuccess, onCancel, t, lang }: any) {
+  const [manualCode, setManualCode] = useState('');
+
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
     
@@ -773,19 +813,51 @@ function ScannerView({ onSuccess, onCancel, t, lang }: any) {
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-300">
-      <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100 relative">
+      <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100 relative">
         <button 
           onClick={onCancel}
-          className="absolute top-4 right-4 z-10 p-2 bg-white/80 backdrop-blur rounded-full shadow-sm text-slate-600 hover:text-slate-900"
+          className="absolute top-4 right-4 z-10 p-2 bg-white/80 backdrop-blur rounded-full shadow-sm text-slate-600 hover:text-slate-900 active:scale-95"
         >
-          <X size={24} />
+          <X size={20} />
         </button>
         
         <div className="p-4 bg-slate-900 text-white text-center">
-          <h2 className="font-bold">{t('Arahkan kamera ke QR', 'Point camera at QR')}</h2>
+          <h2 className="font-bold text-base">{t('Scan QR Checkpoint', 'Scan Checkpoint QR')}</h2>
+          <p className="text-xs text-slate-300 mt-0.5">{t('Arahkan kamera ke QR Code', 'Point camera at QR Code')}</p>
         </div>
         
         <div id="qr-reader" className="w-full"></div>
+
+        {/* Integrated Manual Code Input Section */}
+        <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-2">
+          <label className="block text-xs font-bold text-slate-700">
+            {t('Kamera bermasalah / Masukkan ID Manual:', 'Camera issue / Enter Manual ID:')}
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder={t('Masukkan ID (contoh: STP-Z1-01)', 'Enter ID (e.g. STP-Z1-01)')}
+              value={manualCode}
+              onChange={(e) => setManualCode(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && manualCode.trim()) {
+                  onSuccess(manualCode.trim());
+                }
+              }}
+              className="flex-1 bg-white px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-blue-500 shadow-sm"
+            />
+            <button
+              onClick={() => {
+                if (manualCode.trim()) {
+                  onSuccess(manualCode.trim());
+                }
+              }}
+              className="px-4 py-2.5 bg-blue-600 text-white font-bold text-sm rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shrink-0"
+            >
+              {t('Kirim', 'Submit')}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
