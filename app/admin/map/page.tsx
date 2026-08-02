@@ -20,7 +20,10 @@ import {
   ArrowLeft,
   Tag,
   CreditCard,
-  Sliders
+  Sliders,
+  Crosshair,
+  Maximize2,
+  RefreshCw
 } from 'lucide-react';
 
 export default function AdminMapPage() {
@@ -87,12 +90,14 @@ export default function AdminMapPage() {
     tagsInput: 'Teknologi, Riset',
   });
 
-  // Pan / Zoom Controls
+  // Pan / Zoom & Touch State
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
   const initialPanRef = useRef({ x: 0, y: 0 });
+  const hasMovedRef = useRef(false);
+  const touchDistanceRef = useRef<number | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
   // 1. Session check on mount
@@ -158,10 +163,20 @@ export default function AdminMapPage() {
     await supabase.auth.signOut();
   };
 
-  // Zoom / Pan Mouse Handlers
+  // Zoom Helpers (Max Zoom 6.0x for precision editing)
+  const zoomIn = () => setScale((s) => Math.min(Number((s + 0.4).toFixed(1)), 6.0));
+  const zoomOut = () => setScale((s) => Math.max(Number((s - 0.4).toFixed(1)), 0.8));
+  const setPresetZoom = (z: number) => setScale(z);
+  const resetZoom = () => {
+    setScale(1);
+    setPan({ x: 0, y: 0 });
+  };
+
+  // Mouse Handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
     setIsDragging(true);
+    hasMovedRef.current = false;
     dragStartRef.current = { x: e.clientX, y: e.clientY };
     initialPanRef.current = { ...pan };
   };
@@ -170,17 +185,77 @@ export default function AdminMapPage() {
     if (!isDragging) return;
     const dx = e.clientX - dragStartRef.current.x;
     const dy = e.clientY - dragStartRef.current.y;
+    if (Math.hypot(dx, dy) > 5) {
+      hasMovedRef.current = true;
+    }
     setPan({
       x: initialPanRef.current.x + dx,
       y: initialPanRef.current.y + dy,
     });
   };
 
-  const handleMouseUp = () => setIsDragging(false);
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
 
-  // CLICK MAP TO CREATE PIN
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const zoomFactor = e.deltaY < 0 ? 0.2 : -0.2;
+    setScale((s) => Math.min(Math.max(Number((s + zoomFactor).toFixed(1)), 0.8), 6.0));
+  };
+
+  // Touch Handlers for Mobile Devices (Single Finger Pan & Two Finger Pinch Zoom)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      hasMovedRef.current = false;
+      dragStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      initialPanRef.current = { ...pan };
+    } else if (e.touches.length === 2) {
+      setIsDragging(false);
+      hasMovedRef.current = true;
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      touchDistanceRef.current = dist;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 1 && isDragging) {
+      const dx = e.touches[0].clientX - dragStartRef.current.x;
+      const dy = e.touches[0].clientY - dragStartRef.current.y;
+      if (Math.hypot(dx, dy) > 6) {
+        hasMovedRef.current = true;
+      }
+      setPan({
+        x: initialPanRef.current.x + dx,
+        y: initialPanRef.current.y + dy,
+      });
+    } else if (e.touches.length === 2 && touchDistanceRef.current !== null) {
+      const currentDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const delta = (currentDist - touchDistanceRef.current) * 0.006;
+      setScale((s) => Math.min(Math.max(Number((s + delta).toFixed(1)), 0.8), 6.0));
+      touchDistanceRef.current = currentDist;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    touchDistanceRef.current = null;
+  };
+
+  // CLICK MAP TO CREATE PIN (Triggers only if not dragging/panning)
   const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Only trigger if not dragging
+    if (hasMovedRef.current) {
+      hasMovedRef.current = false;
+      return; // Ignore if user was panning/dragging
+    }
+
     const rect = e.currentTarget.getBoundingClientRect();
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
@@ -212,7 +287,7 @@ export default function AdminMapPage() {
     setKartuForm({
       id: `kartu_${Date.now()}`,
       tipe: 'skill',
-      tagsInput: 'Inovasi, Teknologi',
+      tagsInput: 'Teknologi, Inovasi',
     });
 
     setIsModalOpen(true);
@@ -298,14 +373,12 @@ export default function AdminMapPage() {
         setSaveSuccess('Checkpoint baru berhasil ditambahkan!');
       } else {
         // UPDATE
-        // 1. Update checkpoint
         const { error: cpErr } = await supabase
           .from('checkpoint')
           .update(cpForm)
           .eq('id', cpForm.id);
         if (cpErr) throw new Error(`Gagal update checkpoint: ${cpErr.message}`);
 
-        // 2. Upsert kartu
         const { error: kartuErr } = await supabase.from('kartu').upsert([
           {
             id: kartuForm.id || `kartu_${Date.now()}`,
@@ -336,9 +409,7 @@ export default function AdminMapPage() {
 
     setIsSubmitting(true);
     try {
-      // Delete kartu first (FK rule)
       await supabase.from('kartu').delete().eq('checkpoint_id', cpForm.id);
-      // Delete checkpoint
       const { error } = await supabase.from('checkpoint').delete().eq('id', cpForm.id);
 
       if (error) throw error;
@@ -427,8 +498,8 @@ export default function AdminMapPage() {
         </div>
       )}
 
-      {/* Header Bar */}
-      <header className="sticky top-0 z-30 flex items-center justify-between px-6 py-3.5 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
+      {/* Responsive Header Bar */}
+      <header className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 py-3 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
         <div className="flex items-center gap-3">
           <Link
             href="/admin"
@@ -443,62 +514,140 @@ export default function AdminMapPage() {
               <span>Admin Map Visual Editor</span>
             </h1>
             <p className="text-[11px] text-slate-400">
-              Klik area kosong pada peta untuk memasang pin baru ({checkpoints.length} Pin Aktif)
+              Tap / Klik area peta untuk pasang pin ({checkpoints.length} Pin Aktif)
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={loadMapData}
+            disabled={isLoadingData}
+            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all border border-slate-700 disabled:opacity-50"
+            title="Refresh Data"
+          >
+            <RefreshCw size={16} className={isLoadingData ? 'animate-spin' : ''} />
+          </button>
           <Link
             href="/map"
             target="_blank"
             className="px-3 py-1.5 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
           >
-            <span>Pratinjau Visitor Map</span>
+            <span>Visitor Map</span>
           </Link>
           <button
             onClick={handleLogout}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-red-950/40 hover:text-red-400 border border-slate-700 rounded-xl text-xs font-bold text-slate-300 transition-all"
           >
             <LogOut size={15} />
-            <span>Keluar</span>
+            <span className="hidden sm:inline">Keluar</span>
           </button>
         </div>
       </header>
 
-      {/* Floating Zoom & Controls */}
-      <div className="absolute right-4 top-20 z-30 flex flex-col gap-2 bg-slate-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800 shadow-xl">
+      {/* Floating Responsive Precision Zoom Toolbar (Mobile & Desktop) */}
+      <div className="absolute right-3 top-20 z-30 flex flex-col items-center gap-1.5 bg-slate-900/95 backdrop-blur-md p-2 rounded-2xl border border-slate-800 shadow-2xl">
+        {/* Scale Percentage Indicator */}
+        <div className="px-2 py-1 bg-slate-950 border border-slate-800 rounded-lg text-[10px] font-black text-blue-400 tracking-wider">
+          {Math.round(scale * 100)}%
+        </div>
+
+        {/* Zoom In (+) */}
         <button
-          onClick={() => setScale((s) => Math.min(s + 0.3, 4))}
-          className="p-2.5 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white"
+          onClick={zoomIn}
+          className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-blue-600 text-slate-200 hover:text-white transition-all active:scale-90"
+          title="Zoom In (+)"
         >
           <ZoomIn size={18} />
         </button>
+
+        {/* Zoom Out (-) */}
         <button
-          onClick={() => setScale((s) => Math.max(s - 0.3, 0.8))}
-          className="p-2.5 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white"
+          onClick={zoomOut}
+          className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-blue-600 text-slate-200 hover:text-white transition-all active:scale-90"
+          title="Zoom Out (-)"
         >
           <ZoomOut size={18} />
         </button>
+
+        <hr className="w-full border-slate-800 my-0.5" />
+
+        {/* Quick Zoom Presets for High Precision Pinning */}
+        <div className="flex flex-col gap-1 w-full">
+          <button
+            onClick={() => setPresetZoom(1.0)}
+            className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+              scale === 1.0
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-800 text-slate-400 hover:text-white'
+            }`}
+          >
+            1x
+          </button>
+          <button
+            onClick={() => setPresetZoom(2.5)}
+            className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+              scale === 2.5
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-800 text-slate-400 hover:text-white'
+            }`}
+          >
+            2.5x
+          </button>
+          <button
+            onClick={() => setPresetZoom(4.0)}
+            className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+              scale === 4.0
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-800 text-slate-400 hover:text-white'
+            }`}
+          >
+            4.0x
+          </button>
+          <button
+            onClick={() => setPresetZoom(6.0)}
+            className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+              scale === 6.0
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-800 text-slate-400 hover:text-white'
+            }`}
+          >
+            6.0x
+          </button>
+        </div>
+
+        <hr className="w-full border-slate-800 my-0.5" />
+
+        {/* Re-center / Reset */}
         <button
-          onClick={() => {
-            setScale(1);
-            setPan({ x: 0, y: 0 });
-          }}
-          className="p-2.5 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white"
+          onClick={resetZoom}
+          className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-all active:scale-90"
+          title="Reset Zoom & Pan"
         >
-          <RotateCcw size={18} />
+          <RotateCcw size={16} />
         </button>
       </div>
 
-      {/* Map Canvas */}
+      {/* Precision Helper Badge */}
+      <div className="absolute left-3 top-20 z-30 pointer-events-none hidden sm:flex items-center gap-2 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-[11px] text-slate-300 font-medium shadow-md">
+        <Crosshair size={14} className="text-amber-400" />
+        <span>Gunakan Zoom 4x/6x untuk memasang pin dengan presisi tinggi</span>
+      </div>
+
+      {/* Map Canvas with Mouse & Full Touch Gesture Handlers */}
       <div
+        ref={mapContainerRef}
         className={`flex-1 w-full h-full relative overflow-hidden bg-slate-950 flex items-center justify-center ${
           isDragging ? 'cursor-grabbing' : 'cursor-crosshair'
         }`}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         <div
           className="relative inline-block transition-transform duration-75 origin-center"
@@ -526,19 +675,19 @@ export default function AdminMapPage() {
                 <div
                   key={cp.id}
                   onClick={(e) => handlePinClick(e, cp)}
-                  className="absolute z-20 cursor-pointer transform -translate-x-1/2 -translate-y-1/2 group transition-transform duration-150 hover:scale-125"
+                  className="absolute z-20 cursor-pointer transform -translate-x-1/2 -translate-y-1/2 p-2 group transition-transform duration-150 hover:scale-125 active:scale-95"
                   style={{ left: `${posX}%`, top: `${posY}%` }}
                   title={`Klik untuk edit/hapus: ${cp.nama_id}`}
                 >
                   <div
-                    className={`w-7 h-7 rounded-full flex items-center justify-center border-2 border-white shadow-lg ${
+                    className={`w-7 h-7 rounded-full flex items-center justify-center border-2 border-white shadow-xl ${
                       isRestricted ? 'bg-red-600' : 'bg-blue-600'
                     }`}
                   >
                     <MapPin size={14} className="text-white" />
                   </div>
 
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 bg-slate-900 border border-slate-700 rounded text-[10px] font-bold text-white whitespace-nowrap shadow-md group-hover:scale-110">
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 bg-slate-900/90 backdrop-blur-sm border border-slate-700 rounded text-[10px] font-bold text-white whitespace-nowrap shadow-md group-hover:scale-110 pointer-events-none">
                     {cp.nama_id}
                   </div>
                 </div>
@@ -551,7 +700,7 @@ export default function AdminMapPage() {
       {/* CRUD FORM MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
-          <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 text-white my-8">
+          <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-5 text-white my-8">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <div className="flex items-center gap-2">
@@ -562,8 +711,8 @@ export default function AdminMapPage() {
                   <h2 className="text-lg font-bold">
                     {modalMode === 'create' ? 'Tambah Checkpoint Baru' : 'Edit Checkpoint'}
                   </h2>
-                  <p className="text-xs text-slate-400">
-                    Koordinat: X: {cpForm.posisi_x}%, Y: {cpForm.posisi_y}%
+                  <p className="text-xs text-blue-400 font-mono font-semibold">
+                    Koordinat Presisi: X: {cpForm.posisi_x}%, Y: {cpForm.posisi_y}%
                   </p>
                 </div>
               </div>
