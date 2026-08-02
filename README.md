@@ -181,7 +181,7 @@ project/
 
 This project is intended for educational and demonstration purposes. Please refer to the repository license for usage details.
 
-![Next.js](https://github.com)
+![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
 
 
 
