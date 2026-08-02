@@ -157,7 +157,7 @@ export default function GameApp() {
 
   return (
     <div
-      className="h-dvh h-full w-full bg-slate-50 text-slate-900 font-sans overflow-hidden relative"
+      className="h-dvh h-screen w-full bg-slate-50 text-slate-900 font-sans overflow-hidden relative flex flex-col"
       style={{
         backgroundImage: `url(${pageBackground.src})`,
         backgroundSize: 'cover',
@@ -165,7 +165,7 @@ export default function GameApp() {
         backgroundAttachment: 'fixed'
       }}
     >
-      <div className="h-dvh h-full w-full bg-slate-950/55 backdrop-blur-[2px] flex flex-col overflow-hidden relative">
+      <div className="h-dvh h-screen w-full bg-slate-950/55 backdrop-blur-[2px] flex flex-col overflow-hidden relative">
         {/* Top Header Bar for non-map sub-pages */}
         {view !== 'landing' && view !== 'map' && (
           <header className="shrink-0 h-12 w-full z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 flex justify-between items-center shadow-sm">
@@ -197,7 +197,7 @@ export default function GameApp() {
           </header>
         )}
 
-        <main className={view === 'map' ? "flex-1 w-full relative overflow-hidden pb-16" : "flex-1 w-full max-w-md mx-auto p-4 pb-20 overflow-y-auto"}>
+        <main className={view === 'map' ? "flex-1 w-full relative overflow-hidden flex flex-col" : "flex-1 w-full max-w-md mx-auto p-4 pb-4 overflow-y-auto flex flex-col"}>
           {view === 'landing' && (
             <LandingView 
               lang={lang} 
@@ -274,9 +274,9 @@ export default function GameApp() {
           )}
         </main>
 
-        {/* Fixed Symmetrical Bottom Navigation Bar */}
+        {/* Non-overlapping Rigid Bottom Navigation Bar */}
         {view !== 'landing' && (
-          <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-2xl flex justify-center items-center select-none">
+          <nav className="shrink-0 h-16 w-full bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-2xl flex justify-center items-center select-none z-40">
             <div className="max-w-md w-full h-full grid grid-cols-3 items-center">
               <button
                 type="button"
@@ -397,8 +397,6 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, t }: 
 }
 
 function MapView({ gameData, progress, onScan, onScanManual, t, lang, setLang }: any) {
-  const [zoomDisplay, setZoomDisplay] = useState<number | null>(null);
-  const [zoomBadgeVisible, setZoomBadgeVisible] = useState(false);
   const [selectedCheckpoint, setSelectedCheckpoint] = useState<any | null>(null);
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   
@@ -412,6 +410,7 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang, setLang }:
 
   const containerRef = useRef<HTMLDivElement>(null);
   const mapContentRef = useRef<HTMLDivElement>(null);
+  const zoomBadgeRef = useRef<HTMLDivElement>(null);
   const popupTimeoutRef = useRef<number | null>(null);
   const zoomTimeoutRef = useRef<number | null>(null);
 
@@ -453,10 +452,22 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang, setLang }:
 
   const clampScale = (val: number) => Math.min(3, Math.max(0.5, val));
 
-  // Fast GPU hardware layer transform update via requestAnimationFrame
+  // Ultra-fast GPU hardware layer transform update (0 React re-renders during active gestures)
   const applyTransform = () => {
     if (mapContentRef.current) {
       mapContentRef.current.style.transform = `translate3d(${panRef.current.x}px, ${panRef.current.y}px, 0) scale(${scaleRef.current})`;
+    }
+    if (zoomBadgeRef.current) {
+      zoomBadgeRef.current.textContent = `${Math.round(scaleRef.current * 100)}%`;
+      zoomBadgeRef.current.style.opacity = '1';
+      if (zoomTimeoutRef.current) {
+        window.clearTimeout(zoomTimeoutRef.current);
+      }
+      zoomTimeoutRef.current = window.setTimeout(() => {
+        if (zoomBadgeRef.current) {
+          zoomBadgeRef.current.style.opacity = '0';
+        }
+      }, 1200);
     }
   };
 
@@ -464,15 +475,6 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang, setLang }:
     if (rafIdRef.current === null) {
       rafIdRef.current = requestAnimationFrame(() => {
         applyTransform();
-        const nextZoom = Math.round(scaleRef.current * 100);
-        setZoomDisplay(nextZoom);
-        setZoomBadgeVisible(true);
-        if (zoomTimeoutRef.current) {
-          window.clearTimeout(zoomTimeoutRef.current);
-        }
-        zoomTimeoutRef.current = window.setTimeout(() => {
-          setZoomBadgeVisible(false);
-        }, 1200);
         rafIdRef.current = null;
       });
     }
@@ -589,7 +591,7 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang, setLang }:
   };
 
   return (
-    <div className="relative w-full h-full min-h-[calc(100vh-4rem)] overflow-hidden bg-slate-950 select-none touch-none animate-in fade-in duration-300">
+    <div className="relative flex-1 w-full h-full overflow-hidden bg-slate-950 select-none touch-none animate-in fade-in duration-300">
       {/* Top Floating App Title & Language Switcher */}
       <div className="absolute top-4 left-4 right-4 z-30 flex items-center justify-between pointer-events-none">
         <div className="pointer-events-auto bg-white/95 backdrop-blur-md border border-slate-200 px-4 py-2 rounded-2xl shadow-xl font-black text-slate-800 text-base flex items-center gap-2">
@@ -639,7 +641,7 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang, setLang }:
         {/* Pembungkus Zoom GPU Accelerated Layer */}
         <div
           ref={mapContentRef}
-          className="transition-transform duration-75 ease-out origin-center flex items-center justify-center min-w-full min-h-full"
+          className="origin-center flex items-center justify-center min-w-full min-h-full"
           style={{ 
             willChange: 'transform',
             transform: `translate3d(${panRef.current.x}px, ${panRef.current.y}px, 0) scale(${scaleRef.current})`,
@@ -651,7 +653,7 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang, setLang }:
             <img
               src={mapImage.src}
               alt={t('Peta kawasan', 'Area map')}
-              className="max-w-full max-h-[85vh] object-contain cursor-grab pointer-events-none block rounded-xl shadow-2xl"
+              className="max-w-full max-h-[85vh] object-contain cursor-grab pointer-events-none block bg-transparent drop-shadow-none"
               draggable={false}
               style={{ imageRendering: 'auto' }}
             />
@@ -760,12 +762,13 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang, setLang }:
             </button>
           </div>
 
-          {/* Zoom Level Badge */}
-          {zoomDisplay !== null && (
-            <div className={`bg-slate-900/90 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20 text-[11px] font-bold text-white shadow-md transition-opacity duration-300 ${zoomBadgeVisible ? 'opacity-100' : 'opacity-0'}`}>
-              {zoomDisplay}%
-            </div>
-          )}
+          {/* Zoom Level Badge (Direct Ref DOM manipulation for 60FPS zero React re-render overhead) */}
+          <div
+            ref={zoomBadgeRef}
+            className="bg-slate-900/90 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20 text-[11px] font-bold text-white shadow-md transition-opacity duration-300 opacity-0 pointer-events-none"
+          >
+            100%
+          </div>
         </div>
 
         {/* Floating Action Button (FAB) for Scanning QR at Bottom Right */}
