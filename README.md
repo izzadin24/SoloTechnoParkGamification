@@ -8,7 +8,7 @@
 **A location-based gamified exploration app — scan checkpoints, collect cards, build your innovation blueprint.**
 
 [![Status](https://img.shields.io/badge/status-active-brightgreen)]()
-[![Frontend](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)]()
+[![Frontend](https://img.shields.io/badge/frontend-Next.js-000000?logo=nextdotjs&logoColor=white)]()
 [![Backend](https://img.shields.io/badge/backend-Supabase-3ECF8E)]()
 [![Platform](https://img.shields.io/badge/platform-mobile--first-blue)]()
 [![Languages](https://img.shields.io/badge/i18n-ID%20%7C%20EN-orange)]()
