@@ -157,7 +157,7 @@ export default function GameApp() {
 
   return (
     <div
-      className="min-h-screen bg-slate-50 text-slate-900 font-sans"
+      className="h-dvh h-full w-full bg-slate-50 text-slate-900 font-sans overflow-hidden relative"
       style={{
         backgroundImage: `url(${pageBackground.src})`,
         backgroundSize: 'cover',
@@ -165,17 +165,17 @@ export default function GameApp() {
         backgroundAttachment: 'fixed'
       }}
     >
-      <div className="min-h-screen w-full bg-slate-950/55 backdrop-blur-[2px] flex flex-col justify-between relative">
+      <div className="h-dvh h-full w-full bg-slate-950/55 backdrop-blur-[2px] flex flex-col overflow-hidden relative">
         {/* Top Header Bar for non-map sub-pages */}
         {view !== 'landing' && view !== 'map' && (
-          <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 py-2.5 flex justify-between items-center shadow-sm">
+          <header className="shrink-0 h-12 w-full z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 flex justify-between items-center shadow-sm">
             <div className="font-extrabold text-lg text-slate-800 tracking-tight">
               Jelajah STP
             </div>
             
             <div className="flex items-center gap-2">
               {/* Language Switcher */}
-              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+              <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
                 <button 
                   onClick={() => setLang('id')} 
                   className={`px-2.5 py-0.5 rounded-lg text-xs font-bold transition-all ${lang === 'id' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
@@ -197,7 +197,7 @@ export default function GameApp() {
           </header>
         )}
 
-        <main className={view === 'map' ? "w-full h-[calc(100vh-4rem)] relative overflow-hidden" : "max-w-md mx-auto p-4 pb-24 flex-1 w-full"}>
+        <main className={view === 'map' ? "flex-1 w-full relative overflow-hidden pb-16" : "flex-1 w-full max-w-md mx-auto p-4 pb-20 overflow-y-auto"}>
           {view === 'landing' && (
             <LandingView 
               lang={lang} 
@@ -274,38 +274,43 @@ export default function GameApp() {
           )}
         </main>
 
-        {/* Fixed Bottom Navigation Bar */}
+        {/* Fixed Symmetrical Bottom Navigation Bar */}
         {view !== 'landing' && (
-          <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/80 py-2.5 px-6 shadow-2xl flex justify-around items-center select-none">
-            <button
-              onClick={() => setView('map')}
-              className={`flex flex-col items-center justify-center gap-1 transition-all ${
-                view === 'map' ? 'text-blue-600 font-black scale-105' : 'text-slate-500 hover:text-slate-800 font-medium'
-              }`}
-            >
-              <Map size={22} strokeWidth={view === 'map' ? 2.5 : 2} />
-              <span className="text-[10px] tracking-wider uppercase font-bold">{t('PETA', 'MAP')}</span>
-            </button>
-            
-            <button
-              onClick={() => setView('inventory')}
-              className={`flex flex-col items-center justify-center gap-1 transition-all ${
-                view === 'inventory' ? 'text-blue-600 font-black scale-105' : 'text-slate-500 hover:text-slate-800 font-medium'
-              }`}
-            >
-              <LayoutGrid size={22} strokeWidth={view === 'inventory' ? 2.5 : 2} />
-              <span className="text-[10px] tracking-wider uppercase font-bold">{t('KARTU', 'CARDS')}</span>
-            </button>
-            
-            <button
-              onClick={() => setView('blueprint')}
-              className={`flex flex-col items-center justify-center gap-1 transition-all ${
-                view === 'blueprint' ? 'text-blue-600 font-black scale-105' : 'text-slate-500 hover:text-slate-800 font-medium'
-              }`}
-            >
-              <Hammer size={22} strokeWidth={view === 'blueprint' ? 2.5 : 2} />
-              <span className="text-[10px] tracking-wider uppercase font-bold">BLUEPRINT</span>
-            </button>
+          <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-2xl flex justify-center items-center select-none">
+            <div className="max-w-md w-full h-full grid grid-cols-3 items-center">
+              <button
+                type="button"
+                onClick={() => setView('map')}
+                className={`flex flex-col items-center justify-center h-full w-full gap-0.5 transition-all ${
+                  view === 'map' ? 'text-blue-600 font-black scale-105' : 'text-slate-500 hover:text-slate-800 font-medium'
+                }`}
+              >
+                <Map size={22} strokeWidth={view === 'map' ? 2.5 : 2} />
+                <span className="text-[10px] tracking-wider uppercase font-black leading-none text-center">{t('PETA', 'MAP')}</span>
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setView('inventory')}
+                className={`flex flex-col items-center justify-center h-full w-full gap-0.5 transition-all ${
+                  view === 'inventory' ? 'text-blue-600 font-black scale-105' : 'text-slate-500 hover:text-slate-800 font-medium'
+                }`}
+              >
+                <LayoutGrid size={22} strokeWidth={view === 'inventory' ? 2.5 : 2} />
+                <span className="text-[10px] tracking-wider uppercase font-black leading-none text-center">{t('KARTU', 'CARDS')}</span>
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setView('blueprint')}
+                className={`flex flex-col items-center justify-center h-full w-full gap-0.5 transition-all ${
+                  view === 'blueprint' ? 'text-blue-600 font-black scale-105' : 'text-slate-500 hover:text-slate-800 font-medium'
+                }`}
+              >
+                <Hammer size={22} strokeWidth={view === 'blueprint' ? 2.5 : 2} />
+                <span className="text-[10px] tracking-wider uppercase font-black leading-none text-center">BLUEPRINT</span>
+              </button>
+            </div>
           </nav>
         )}
       </div>
