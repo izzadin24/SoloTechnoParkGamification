@@ -23,7 +23,9 @@ import {
   Sliders,
   Crosshair,
   Maximize2,
-  RefreshCw
+  RefreshCw,
+  Upload,
+  Image as ImageIcon
 } from 'lucide-react';
 
 export default function AdminMapPage() {
@@ -47,7 +49,7 @@ export default function AdminMapPage() {
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Form Fields
+  // Form Fields - Checkpoint
   const [cpForm, setCpForm] = useState<{
     id: string;
     zona_id: string;
@@ -80,15 +82,22 @@ export default function AdminMapPage() {
     posisi_y: 50,
   });
 
+  // Form Fields - Kartu
   const [kartuForm, setKartuForm] = useState<{
     id: string;
     tipe: string;
     tagsInput: string;
+    ikon_url: string | null;
   }>({
     id: '',
     tipe: 'skill',
     tagsInput: 'Teknologi, Riset',
+    ikon_url: null,
   });
+
+  // File Upload State for Kartu Icon
+  const [selectedIconFile, setSelectedIconFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Pan / Zoom & Touch State
   const [scale, setScale] = useState(1);
@@ -288,7 +297,11 @@ export default function AdminMapPage() {
       id: `kartu_${Date.now()}`,
       tipe: 'skill',
       tagsInput: 'Teknologi, Inovasi',
+      ikon_url: null,
     });
+
+    setSelectedIconFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
 
     setIsModalOpen(true);
   };
@@ -315,6 +328,9 @@ export default function AdminMapPage() {
       posisi_y: cp.posisi_y ?? 50,
     });
 
+    setSelectedIconFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+
     // Fetch linked kartu
     try {
       const { data: kartuData } = await supabase
@@ -328,12 +344,14 @@ export default function AdminMapPage() {
           id: kartuData.id,
           tipe: kartuData.tipe || 'skill',
           tagsInput: Array.isArray(kartuData.tags) ? kartuData.tags.join(', ') : '',
+          ikon_url: kartuData.ikon_url || null,
         });
       } else {
         setKartuForm({
           id: `kartu_${Date.now()}`,
           tipe: 'skill',
           tagsInput: '',
+          ikon_url: null,
         });
       }
     } catch (err) {
@@ -343,7 +361,7 @@ export default function AdminMapPage() {
     setIsModalOpen(true);
   };
 
-  // SUBMIT FORM (CREATE / UPDATE)
+  // SUBMIT FORM (CREATE / UPDATE) WITH SUPABASE STORAGE FILE UPLOAD
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -354,37 +372,71 @@ export default function AdminMapPage() {
         .map((t) => t.trim())
         .filter(Boolean);
 
+      let finalIkonUrl = kartuForm.ikon_url;
+
+      // 1. SUPABASE STORAGE FILE UPLOAD (kartu_icons bucket)
+      if (selectedIconFile) {
+        try {
+          const fileExt = selectedIconFile.name.split('.').pop() || 'png';
+          const fileName = `icon_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+          const filePath = `${fileName}`;
+
+          const { data: uploadData, error: uploadErr } = await supabase.storage
+            .from('kartu_icons')
+            .upload(filePath, selectedIconFile, { upsert: true });
+
+          if (uploadErr) {
+            console.warn('Supabase storage upload error:', uploadErr.message);
+            setSaveSuccess(`Warning: Gagal upload ikon (${uploadErr.message})`);
+          } else {
+            const { data: publicUrlData } = supabase.storage
+              .from('kartu_icons')
+              .getPublicUrl(filePath);
+
+            if (publicUrlData?.publicUrl) {
+              finalIkonUrl = publicUrlData.publicUrl;
+            }
+          }
+        } catch (err: any) {
+          console.warn('Storage upload exception:', err);
+        }
+      }
+
+      // 2. DATABASE SUBMIT LOGIC
       if (modalMode === 'create') {
-        // 1. Insert checkpoint
+        // Insert checkpoint
         const { error: cpErr } = await supabase.from('checkpoint').insert([cpForm]);
         if (cpErr) throw new Error(`Gagal membuat checkpoint: ${cpErr.message}`);
 
-        // 2. Insert kartu
+        // Insert kartu with ikon_url
         const { error: kartuErr } = await supabase.from('kartu').insert([
           {
             id: kartuForm.id || `kartu_${Date.now()}`,
             checkpoint_id: cpForm.id,
             tipe: kartuForm.tipe,
             tags: tagsArray,
+            ikon_url: finalIkonUrl,
           },
         ]);
         if (kartuErr) console.warn('Peringatan simpan kartu:', kartuErr.message);
 
         setSaveSuccess('Checkpoint baru berhasil ditambahkan!');
       } else {
-        // UPDATE
+        // Update checkpoint
         const { error: cpErr } = await supabase
           .from('checkpoint')
           .update(cpForm)
           .eq('id', cpForm.id);
         if (cpErr) throw new Error(`Gagal update checkpoint: ${cpErr.message}`);
 
+        // Upsert kartu with ikon_url
         const { error: kartuErr } = await supabase.from('kartu').upsert([
           {
             id: kartuForm.id || `kartu_${Date.now()}`,
             checkpoint_id: cpForm.id,
             tipe: kartuForm.tipe,
             tags: tagsArray,
+            ikon_url: finalIkonUrl,
           },
         ]);
         if (kartuErr) console.warn('Peringatan update kartu:', kartuErr.message);
@@ -392,7 +444,11 @@ export default function AdminMapPage() {
         setSaveSuccess('Perubahan checkpoint berhasil disimpan!');
       }
 
+      // Reset file input & UI state
+      setSelectedIconFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       setIsModalOpen(false);
+
       await loadMapData();
       setTimeout(() => setSaveSuccess(null), 3000);
     } catch (err: any) {
@@ -413,6 +469,9 @@ export default function AdminMapPage() {
       const { error } = await supabase.from('checkpoint').delete().eq('id', cpForm.id);
 
       if (error) throw error;
+
+      setSelectedIconFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
 
       setSaveSuccess('Checkpoint berhasil dihapus.');
       setIsModalOpen(false);
@@ -547,12 +606,10 @@ export default function AdminMapPage() {
 
       {/* Floating Responsive Precision Zoom Toolbar (Mobile & Desktop) */}
       <div className="absolute right-3 top-20 z-30 flex flex-col items-center gap-1.5 bg-slate-900/95 backdrop-blur-md p-2 rounded-2xl border border-slate-800 shadow-2xl">
-        {/* Scale Percentage Indicator */}
         <div className="px-2 py-1 bg-slate-950 border border-slate-800 rounded-lg text-[10px] font-black text-blue-400 tracking-wider">
           {Math.round(scale * 100)}%
         </div>
 
-        {/* Zoom In (+) */}
         <button
           onClick={zoomIn}
           className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-blue-600 text-slate-200 hover:text-white transition-all active:scale-90"
@@ -561,7 +618,6 @@ export default function AdminMapPage() {
           <ZoomIn size={18} />
         </button>
 
-        {/* Zoom Out (-) */}
         <button
           onClick={zoomOut}
           className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-blue-600 text-slate-200 hover:text-white transition-all active:scale-90"
@@ -572,7 +628,6 @@ export default function AdminMapPage() {
 
         <hr className="w-full border-slate-800 my-0.5" />
 
-        {/* Quick Zoom Presets for High Precision Pinning */}
         <div className="flex flex-col gap-1 w-full">
           <button
             onClick={() => setPresetZoom(1.0)}
@@ -618,7 +673,6 @@ export default function AdminMapPage() {
 
         <hr className="w-full border-slate-800 my-0.5" />
 
-        {/* Re-center / Reset */}
         <button
           onClick={resetZoom}
           className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-all active:scale-90"
@@ -634,7 +688,7 @@ export default function AdminMapPage() {
         <span>Gunakan Zoom 4x/6x untuk memasang pin dengan presisi tinggi</span>
       </div>
 
-      {/* Map Canvas with Mouse & Full Touch Gesture Handlers */}
+      {/* Map Canvas */}
       <div
         ref={mapContainerRef}
         className={`flex-1 w-full h-full relative overflow-hidden bg-slate-950 flex items-center justify-center ${
@@ -853,7 +907,7 @@ export default function AdminMapPage() {
 
               <hr className="border-slate-800" />
 
-              {/* SECTION 2: LINKED KARTU DATA */}
+              {/* SECTION 2: LINKED KARTU DATA WITH SUPABASE STORAGE ICON UPLOAD */}
               <div className="space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
                   <CreditCard size={14} />
@@ -886,6 +940,70 @@ export default function AdminMapPage() {
                     />
                   </div>
                 </div>
+
+                {/* SUPABASE STORAGE FILE UPLOAD INPUT (`kartu_icons`) */}
+                <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Upload size={14} className="text-blue-400" />
+                    <span>Upload Ikon Kartu (PNG / SVG / JPEG)</span>
+                  </label>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png, image/svg+xml, image/jpeg"
+                    onChange={(e) => setSelectedIconFile(e.target.files?.[0] || null)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 file:mr-3 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer"
+                  />
+
+                  {/* PREVIEW IMAGE THUMBNAIL */}
+                  {(selectedIconFile || kartuForm.ikon_url) && (
+                    <div className="flex items-center justify-between gap-3 pt-2 px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl">
+                      <div className="flex items-center gap-2.5 overflow-hidden">
+                        {selectedIconFile ? (
+                          <img
+                            src={URL.createObjectURL(selectedIconFile)}
+                            alt="Icon Preview"
+                            className="w-8 h-8 object-contain rounded-lg bg-slate-950 p-1 border border-slate-700"
+                          />
+                        ) : kartuForm.ikon_url ? (
+                          <img
+                            src={kartuForm.ikon_url}
+                            alt="Existing Icon"
+                            className="w-8 h-8 object-contain rounded-lg bg-slate-950 p-1 border border-slate-700"
+                          />
+                        ) : (
+                          <ImageIcon size={20} className="text-slate-500" />
+                        )}
+
+                        <div className="truncate text-xs">
+                          <p className="font-semibold text-white truncate">
+                            {selectedIconFile ? selectedIconFile.name : 'Ikon Terpasang'}
+                          </p>
+                          <p className="text-[10px] text-slate-400 truncate">
+                            {selectedIconFile
+                              ? `${(selectedIconFile.size / 1024).toFixed(1)} KB`
+                              : kartuForm.ikon_url}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedIconFile(null);
+                          setKartuForm((prev) => ({ ...prev, ikon_url: null }));
+                          if (fileInputRef.current) fileInputRef.current.value = '';
+                        }}
+                        className="px-2.5 py-1.5 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/30 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shrink-0"
+                        title="Hapus / Lepaskan Ikon"
+                      >
+                        <Trash2 size={14} />
+                        <span>Hapus Ikon</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Action Buttons */}
@@ -907,7 +1025,11 @@ export default function AdminMapPage() {
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => setIsModalOpen(false)}
+                    onClick={() => {
+                      setSelectedIconFile(null);
+                      if (fileInputRef.current) fileInputRef.current.value = '';
+                      setIsModalOpen(false);
+                    }}
                     className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all"
                   >
                     Batal
