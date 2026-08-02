@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GameData, fetchGameData } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { Map, ScanLine, LayoutGrid, Hammer, X, Check, ArrowRight, Lock, Star, Plus, Minus, RotateCcw } from 'lucide-react';
+import { Map, ScanLine, LayoutGrid, Hammer, X, Check, ArrowRight, Lock, Star, Plus, Minus, RotateCcw, Building } from 'lucide-react';
 
 import snapshotData from '../data/snapshot.json';
 import mapImage from '../imageclip_opt.webp';
@@ -17,6 +17,7 @@ interface PlayerProgress {
   ideaId: string | null;
   scannedCheckpoints: string[];
   collectedCards: string[];
+  lastVisitedCheckpointId: string | null;
 }
 
 interface StatQueueItem {
@@ -31,7 +32,8 @@ export default function GameApp() {
   const [progress, setProgress] = useState<PlayerProgress>({
     ideaId: null,
     scannedCheckpoints: [],
-    collectedCards: []
+    collectedCards: [],
+    lastVisitedCheckpointId: null
   });
   const [currentScan, setCurrentScan] = useState<{ checkpointId: string; cardId: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -130,6 +132,11 @@ export default function GameApp() {
     }
 
     setCurrentScan({ checkpointId: checkpoint.id, cardId: card.id });
+
+    setProgress(prev => ({
+      ...prev,
+      lastVisitedCheckpointId: checkpoint.id
+    }));
     
     setStatQueue(prev => [...prev, { checkpoint_id: checkpoint.id, terakhir_update: new Date().toISOString() }]);
     
@@ -240,6 +247,7 @@ export default function GameApp() {
             <InventoryView 
               gameData={gameData} 
               progress={progress} 
+              onBackToMap={() => setView('map')}
               t={t}
               lang={lang}
             />
@@ -340,7 +348,10 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, t }: 
 
 function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
   const [manualCode, setManualCode] = useState('');
-  const [zoomDisplay, setZoomDisplay] = useState(100);
+  const [zoomDisplay, setZoomDisplay] = useState<number | null>(null);
+  const [zoomBadgeVisible, setZoomBadgeVisible] = useState(false);
+  const [selectedCheckpoint, setSelectedCheckpoint] = useState<any | null>(null);
+  const [isPopupVisible, setIsPopupVisible] = useState(false);
   
   // Direct refs for 60FPS GPU hardware acceleration without React re-render overhead
   const scaleRef = useRef(1);
@@ -352,6 +363,8 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const mapContentRef = useRef<HTMLDivElement>(null);
+  const popupTimeoutRef = useRef<number | null>(null);
+  const zoomTimeoutRef = useRef<number | null>(null);
 
   // DOKUMEN WARNA BERDASARKAN ZONA_ID
   const getZoneColor = (zonaId: string) => {
@@ -402,7 +415,15 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
     if (rafIdRef.current === null) {
       rafIdRef.current = requestAnimationFrame(() => {
         applyTransform();
-        setZoomDisplay(Math.round(scaleRef.current * 100));
+        const nextZoom = Math.round(scaleRef.current * 100);
+        setZoomDisplay(nextZoom);
+        setZoomBadgeVisible(true);
+        if (zoomTimeoutRef.current) {
+          window.clearTimeout(zoomTimeoutRef.current);
+        }
+        zoomTimeoutRef.current = window.setTimeout(() => {
+          setZoomBadgeVisible(false);
+        }, 1200);
         rafIdRef.current = null;
       });
     }
@@ -567,6 +588,7 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
               {/* RENDER PIN CHECKPOINT DENGAN WARNA DINAMIS */}
               {gameData?.checkpoints?.map((cp: any) => {
                 const isScanned = progress.scannedCheckpoints.includes(cp.id);
+                const isLastVisited = progress.lastVisitedCheckpointId === cp.id;
                 const isRestricted = cp.status_akses === 'dilarang';
                 const posX = cp.posisi_x ?? 50;
                 const posY = cp.posisi_y ?? 50;
@@ -579,9 +601,15 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
                   <div
                     key={cp.id}
                     onClick={() => {
-                      if (isRestricted) {
-                        alert(`${pinLabel}\n\n${restrictedLabel}`);
+                      setSelectedCheckpoint(cp);
+                      setIsPopupVisible(true);
+                      if (popupTimeoutRef.current) {
+                        window.clearTimeout(popupTimeoutRef.current);
                       }
+                      popupTimeoutRef.current = window.setTimeout(() => {
+                        setIsPopupVisible(false);
+                        window.setTimeout(() => setSelectedCheckpoint(null), 180);
+                      }, 2500);
                     }}
                     className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 transition-transform ${
                       isRestricted ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-125 active:scale-110'
@@ -590,15 +618,15 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
                     title={isRestricted ? `${pinLabel} — ${restrictedLabel}` : pinLabel}
                   >
                     {isRestricted ? (
-                      <div className="w-6 h-6 bg-slate-700 border-2 border-red-400 rounded-full shadow-md flex items-center justify-center active:scale-90 transition-transform">
+                      <div className={`w-6 h-6 bg-slate-700 border-2 border-red-400 rounded-full shadow-md flex items-center justify-center active:scale-90 transition-transform ${isLastVisited ? 'ring-4 ring-amber-300 ring-offset-2' : ''}`}>
                         <Lock size={11} className="text-red-300" strokeWidth={2.5} />
                       </div>
                     ) : isScanned ? (
-                      <div className="w-7 h-7 bg-emerald-500 border-2 border-white text-white rounded-full flex items-center justify-center shadow-lg animate-bounce">
+                      <div className={`w-7 h-7 bg-emerald-500 border-2 border-white text-white rounded-full flex items-center justify-center shadow-lg ${isLastVisited ? 'ring-4 ring-amber-300 ring-offset-2 animate-pulse' : 'animate-bounce'}`}>
                         <Check size={16} strokeWidth={3} />
                       </div>
                     ) : (
-                      <div className={`w-6 h-6 ${zoneColor.bg} border-2 border-white rounded-full shadow-md flex items-center justify-center`}>
+                      <div className={`w-6 h-6 ${zoneColor.bg} border-2 border-white rounded-full shadow-md flex items-center justify-center ${isLastVisited ? 'ring-4 ring-amber-300 ring-offset-2 animate-pulse' : ''}`}>
                         <div className={`w-2 h-2 ${zoneColor.dot} rounded-full`}></div>
                       </div>
                     )}
@@ -607,6 +635,27 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
               })}
             </div>
           </div>
+
+          {selectedCheckpoint && (
+            <div className={`absolute left-3 top-3 z-20 max-w-[calc(100%-1.5rem)] rounded-xl border border-slate-200 bg-white/95 px-3 py-2 shadow-lg backdrop-blur-sm transition-opacity duration-200 ${isPopupVisible ? 'opacity-100' : 'opacity-0'}`}>
+              <div className="flex items-start gap-2">
+                <Building size={16} className="mt-0.5 text-blue-600" />
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                    {t('Bangunan / area', 'Building / area')}
+                  </p>
+                  <p className="font-semibold text-slate-800">
+                    {lang === 'id' ? selectedCheckpoint.nama_id : selectedCheckpoint.nama_en}
+                  </p>
+                  <p className="text-sm text-slate-600">
+                    {selectedCheckpoint.status_akses === 'dilarang'
+                      ? t('Area terlarang', 'Restricted area')
+                      : `${t('Zona', 'Zone')}: ${gameData.zones.find((zone: any) => zone.id === selectedCheckpoint.zona_id)?.[lang === 'id' ? 'nama_id' : 'nama_en'] || '-'}`}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Floating Mobile/Touch Controls (Zoom In, Zoom Out, Reset) */}
           <div className="absolute bottom-3 right-3 z-20 flex flex-col gap-2 bg-slate-900/80 backdrop-blur-md p-1.5 rounded-xl border border-white/20 shadow-lg">
@@ -634,9 +683,11 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
           </div>
 
           {/* Zoom Level Badge */}
-          <div className="absolute top-3 left-3 z-20 bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/20 text-[11px] font-bold text-white shadow-md">
-            {zoomDisplay}%
-          </div>
+          {zoomDisplay !== null && (
+            <div className={`absolute top-3 left-3 z-20 bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/20 text-[11px] font-bold text-white shadow-md transition-opacity duration-300 ${zoomBadgeVisible ? 'opacity-100' : 'opacity-0'}`}>
+              {zoomDisplay}%
+            </div>
+          )}
         </div>
 
         {/* LEGENDA WARNA ZONA */}
@@ -742,15 +793,15 @@ function ScannerView({ onSuccess, onCancel, t, lang }: any) {
 
 function TeaserView({ card, onContinue, t, lang }: any) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[70vh] text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className="rounded-2xl border border-white/30 bg-white/15 px-6 py-5 shadow-xl backdrop-blur-md">
+    <div className="flex min-h-[66vh] flex-col items-center justify-start pt-3 text-center space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div className="w-full rounded-2xl border border-white/30 bg-white/15 px-6 py-5 shadow-xl backdrop-blur-md">
         <h2 className="text-2xl font-black text-white">{t('Data Ditemukan!', 'Data Found!')}</h2>
         <p className="text-slate-100 mt-1">{t('Mengekstrak informasi...', 'Extracting information...')}</p>
       </div>
 
-      <div className="w-48 h-64 bg-slate-200 rounded-xl border-4 border-dashed border-slate-300 flex items-center justify-center shadow-inner relative overflow-hidden">
+      <div className="w-[12.5rem] aspect-[3/4] rounded-[1.75rem] border-4 border-white/80 bg-slate-200 shadow-2xl shadow-slate-950/20 flex items-center justify-center overflow-hidden relative">
         <div className="absolute inset-0 bg-gradient-to-t from-slate-300/50 to-transparent"></div>
-        <span className="text-slate-400 font-bold text-4xl">?</span>
+        <span className="text-slate-400 font-black text-4xl">?</span>
       </div>
 
       <button 
@@ -765,7 +816,7 @@ function TeaserView({ card, onContinue, t, lang }: any) {
 
 function RevealView({ card, checkpoint, onClose, t, lang }: any) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[70vh] text-center space-y-6 animate-in zoom-in-90 duration-500">
+    <div className="flex min-h-[66vh] flex-col items-center justify-start pt-3 text-center space-y-5 animate-in zoom-in-90 duration-500">
       <div className="w-full text-center rounded-2xl border border-white/30 bg-white/15 px-6 py-5 shadow-xl backdrop-blur-md">
         <span className="inline-block px-3 py-1 bg-amber-100 text-amber-700 font-bold text-xs rounded-full uppercase tracking-wider mb-3">
           {card.tipe}
@@ -775,15 +826,15 @@ function RevealView({ card, checkpoint, onClose, t, lang }: any) {
         </h2>
       </div>
 
-      <div className="w-56 h-72 rounded-2xl shadow-2xl overflow-hidden border-4 border-white bg-slate-100 flex items-center justify-center">
+      <div className="w-[13rem] aspect-[3/4] rounded-[1.75rem] shadow-2xl overflow-hidden border-4 border-white bg-slate-100 flex items-center justify-center p-4">
         {card.ikon_url ? (
-          <img src={card.ikon_url} alt="Card" className="w-2/3 h-2/3 object-contain" />
+          <img src={card.ikon_url} alt="Card" className="h-full w-full object-contain" />
         ) : (
           <div className="text-slate-400 font-medium">[{t('Gambar', 'Image')}]</div>
         )}
       </div>
 
-      <p className="text-slate-600 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+      <p className="w-full text-slate-600 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
         {lang === 'id' ? checkpoint?.reveal_id : checkpoint?.reveal_en}
       </p>
 
@@ -798,8 +849,13 @@ function RevealView({ card, checkpoint, onClose, t, lang }: any) {
   );
 }
 
-function InventoryView({ gameData, progress, t, lang }: any) {
+function InventoryView({ gameData, progress, onBackToMap, t, lang }: any) {
+  const [selectedCard, setSelectedCard] = useState<any | null>(null);
   const types = Array.from(new Set(gameData.cards.map((c: any) => c.tipe)));
+
+  const selectedCheckpoint = selectedCard
+    ? gameData.checkpoints.find((cp: any) => cp.id === selectedCard.checkpoint_id)
+    : null;
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -827,12 +883,14 @@ function InventoryView({ gameData, progress, t, lang }: any) {
               const isCollected = progress.collectedCards.includes(card.id);
               const checkpoint = gameData.checkpoints.find((cp: any) => cp.id === card.checkpoint_id);
               return (
-                <div 
-                  key={card.id} 
+                <button
+                  key={card.id}
+                  type="button"
+                  onClick={() => setSelectedCard(card)}
                   className={`aspect-[3/4] rounded-xl flex flex-col p-2 text-center transition-all ${
                     isCollected 
-                      ? 'bg-white/90 shadow-md border border-white text-slate-900' 
-                      : 'bg-white/10 border border-dashed border-white/30 text-white/50 backdrop-blur-sm items-center justify-center'
+                      ? 'bg-white/90 shadow-md border border-white text-slate-900 hover:scale-[1.02]' 
+                      : 'bg-white/10 border border-dashed border-white/30 text-white/50 backdrop-blur-sm items-center justify-center hover:bg-white/15'
                   }`}
                 >
                   {isCollected ? (
@@ -853,12 +911,64 @@ function InventoryView({ gameData, progress, t, lang }: any) {
                   ) : (
                     <span className="font-bold text-2xl text-white/40">?</span>
                   )}
-                </div>
+                </button>
               );
             })}
           </div>
         </div>
       ))}
+
+      <button
+        onClick={onBackToMap}
+        className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-slate-900 text-white font-bold text-lg shadow-xl shadow-slate-900/20 active:scale-95 transition-all"
+      >
+        <Map size={20} />
+        {t('Kembali ke Peta Kawasan', 'Back to Area Map')}
+      </button>
+
+      {selectedCard && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/70 p-3 pt-4 sm:p-4 sm:pt-6"
+          onClick={() => setSelectedCard(null)}
+        >
+          <div
+            className="w-full max-w-[20rem] rounded-[1.75rem] bg-white p-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                  {selectedCard.tipe}
+                </p>
+                <h3 className="mt-1 text-xl font-black text-slate-900">
+                  {lang === 'id' ? selectedCheckpoint?.nama_id : selectedCheckpoint?.nama_en}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedCard(null)}
+                className="rounded-full bg-slate-100 p-2 text-slate-600"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="mt-4 aspect-[3/4] rounded-[1.5rem] bg-slate-100 p-3 flex items-center justify-center">
+              {selectedCard.ikon_url ? (
+                <img src={selectedCard.ikon_url} alt="Card" className="h-full w-full object-contain rounded-2xl" />
+              ) : (
+                <div className="text-slate-400 font-medium">[{t('Gambar', 'Image')}]</div>
+              )}
+            </div>
+
+            <p className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 leading-6">
+              {progress.collectedCards.includes(selectedCard.id)
+                ? (lang === 'id' ? selectedCheckpoint?.reveal_id : selectedCheckpoint?.reveal_en)
+                : t('Kartu ini belum terkumpul', 'This card has not been collected yet')}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
