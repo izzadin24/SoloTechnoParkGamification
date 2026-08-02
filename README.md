@@ -181,4 +181,5 @@ project/
 
 This project is intended for educational and demonstration purposes. Please refer to the repository license for usage details.
 
-![Next.js](https://shields.io)
+<img src="https://cdn.jsdelivr.net/npm/@thesvg/icons/icons/nextdotjs.svg" alt="Next.js" width="40" height="40" />
+
