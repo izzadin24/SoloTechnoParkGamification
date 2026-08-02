@@ -157,7 +157,7 @@ export default function GameApp() {
 
   return (
     <div
-      className="h-dvh h-screen w-full bg-slate-50 text-slate-900 font-sans overflow-hidden relative flex flex-col"
+      className="fixed inset-0 w-full h-full bg-slate-50 text-slate-900 font-sans overflow-hidden flex flex-col"
       style={{
         backgroundImage: `url(${pageBackground.src})`,
         backgroundSize: 'cover',
@@ -165,7 +165,7 @@ export default function GameApp() {
         backgroundAttachment: 'fixed'
       }}
     >
-      <div className="h-dvh h-screen w-full bg-slate-950/55 backdrop-blur-[2px] flex flex-col overflow-hidden relative">
+      <div className="w-full h-full bg-slate-950/55 backdrop-blur-[2px] flex flex-col overflow-hidden relative">
         {/* Top Header Bar for non-map sub-pages */}
         {view !== 'landing' && view !== 'map' && (
           <header className="shrink-0 h-12 w-full z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 flex justify-between items-center shadow-sm">
@@ -274,7 +274,7 @@ export default function GameApp() {
           )}
         </main>
 
-        {/* Non-overlapping Rigid Bottom Navigation Bar */}
+        {/* Fixed Non-overlapping Bottom Navigation Bar */}
         {view !== 'landing' && (
           <nav className="shrink-0 h-16 w-full bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-2xl flex justify-center items-center select-none z-40">
             <div className="max-w-md w-full h-full grid grid-cols-3 items-center">
