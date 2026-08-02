@@ -1,145 +1,179 @@
-# Jelajah Solo Technopark
+<div align="center">
 
-A **mobile-friendly, location-based gamified exploration application** that transforms a physical visit into an interactive adventure. Users explore Solo Technopark, scan QR codes at checkpoints, unlock collectible cards, and build an innovation blueprint based on their discoveries.
 
-## ✨ Overview
+# 🗺️ Jelajah Solo Technopark
+<img width="420" height="237" alt="gedung-solo-technopark_169" src="https://github.com/user-attachments/assets/66a54258-dcf2-4724-9131-de21af3f318f" />
 
-Jelajah Solo Technopark combines **interactive maps**, **real-world QR scanning**, **collectible cards**, and **innovation-themed gameplay** to create an engaging educational experience.
 
-Instead of simply walking through a location, visitors complete checkpoints, discover hidden content, and collect cards that contribute to a final innovation blueprint.
+**A location-based gamified exploration app — scan checkpoints, collect cards, build your innovation blueprint.**
 
----
+[![Status](https://img.shields.io/badge/status-active-brightgreen)]()
+[![Frontend](https://img.shields.io/badge/frontend-HTML%20%7C%20CSS%20%7C%20JS-yellow)]()
+[![Backend](https://img.shields.io/badge/backend-Supabase-3ECF8E)]()
+[![Platform](https://img.shields.io/badge/platform-mobile--first-blue)]()
+[![Languages](https://img.shields.io/badge/i18n-ID%20%7C%20EN-orange)]()
+[![License](https://img.shields.io/badge/license-educational-lightgrey)]()
 
-## 🚀 Features
-
-### 🌍 Landing Experience
-
-* Language selection (Indonesian & English)
-* Product idea selection before starting
-* Guided onboarding experience
-
-### 🗺️ Interactive Map
-
-* Zoom and pan support
-* Interactive checkpoint markers
-* Last visited checkpoint highlighting
-* Restricted area visualization
-
-### 📷 QR Code Checkpoints
-
-* Camera QR scanning
-* Manual code input fallback
-* Location-based progression
-* Secure checkpoint validation
-
-### 🎴 Card Collection System
-
-* Hidden cards unlocked after checkpoint completion
-* Animated card reveal experience
-* Inventory for collected cards
-* Detailed card information view
-
-### 💡 Innovation Blueprint
-
-* Summary of collected cards
-* Scoring system
-* Bonus points based on selected innovation idea
-* Final innovation overview
-
-### 💾 Progress Persistence
-
-* Automatic local storage saving
-* Resume previous progress
-* Stores selected idea, scanned checkpoints, collected cards, and last visited location
-
-### ☁️ Data Integration
-
-* Dynamic content from Supabase
-* Offline snapshot fallback
-* Offline statistics queue
-* Automatic synchronization when online
-
-### 🔐 Admin Panel
-
-* Secure administrator login
-* Edit checkpoint information
-* Manage teaser and reveal content
-* Configure checkpoint accessibility
-
-### 🎨 Modern User Experience
-
-* Responsive mobile-first interface
-* Rounded cards and glassmorphism effects
-* Smooth transitions and animations
-* Bilingual user interface
+</div>
 
 ---
 
-## 🛠️ Technology Stack
+Instead of just walking through Solo Technopark, visitors complete real-world checkpoints, scan QR codes, unlock collectible cards, and watch it all assemble into a final **innovation blueprint** — turning a physical visit into a game.
 
-* Frontend: HTML, CSS, JavaScript
-* Backend: Supabase
-* Local Storage API
-* QR Code Scanner API
-* Responsive Web Design
+## 📑 Table of Contents
 
----
+- [Overview](#-overview)
+- [Features](#-features)
+- [User Journey](#-user-journey)
+- [Tech Stack](#️-tech-stack)
+- [Project Structure](#-project-structure)
+- [Goals](#-project-goals)
+- [License](#-license)
+
+## 🌍 Overview
+
+| | |
+|---|---|
+| **What it is** | A mobile-first web app that gamifies a physical visit to Solo Technopark |
+| **How it works** | Explore an interactive map → scan QR codes at checkpoints → unlock cards → get a scored innovation blueprint |
+| **Who it's for** | Visitors, students, and event attendees exploring the Technopark |
+| **Data layer** | Supabase, with offline fallback and local sync queue |
+
+## ✨ Features
+
+<details>
+<summary><strong>🌍 Landing Experience</strong></summary>
+<br>
+
+- Language selection (Indonesian & English)
+- Product idea selection before starting
+- Guided onboarding flow
+</details>
+
+<details>
+<summary><strong>🗺️ Interactive Map</strong></summary>
+<br>
+
+- Zoom and pan support
+- Interactive checkpoint markers
+- Last-visited checkpoint highlighting
+- Restricted area visualization
+</details>
+
+<details>
+<summary><strong>📷 QR Code Checkpoints</strong></summary>
+<br>
+
+- Camera-based QR scanning
+- Manual code input fallback
+- Location-based progression
+- Secure checkpoint validation
+</details>
+
+<details>
+<summary><strong>🎴 Card Collection System</strong></summary>
+<br>
+
+- Hidden cards unlocked after checkpoint completion
+- Animated card reveal experience
+- Inventory for collected cards
+- Detailed card information view
+</details>
+
+<details>
+<summary><strong>💡 Innovation Blueprint</strong></summary>
+<br>
+
+- Summary of collected cards
+- Scoring system
+- Bonus points based on selected innovation idea
+- Final innovation overview
+</details>
+
+<details>
+<summary><strong>💾 Progress Persistence</strong></summary>
+<br>
+
+- Automatic local storage saving
+- Resume previous progress
+- Stores selected idea, scanned checkpoints, collected cards, and last visited location
+</details>
+
+<details>
+<summary><strong>☁️ Data Integration</strong></summary>
+<br>
+
+- Dynamic content from Supabase
+- Offline snapshot fallback
+- Offline statistics queue
+- Automatic sync when back online
+</details>
+
+<details>
+<summary><strong>🔐 Admin Panel</strong></summary>
+<br>
+
+- Secure administrator login
+- Edit checkpoint information
+- Manage teaser and reveal content
+- Configure checkpoint accessibility
+</details>
+
+<details>
+<summary><strong>🎨 Modern UX</strong></summary>
+<br>
+
+- Responsive, mobile-first interface
+- Rounded cards and glassmorphism effects
+- Smooth transitions and animations
+- Bilingual UI throughout
+</details>
 
 ## 🎮 User Journey
 
-1. Open the application.
-2. Select a language.
-3. Choose an innovation idea.
-4. Explore the interactive map.
-5. Visit checkpoints.
-6. Scan QR codes.
-7. Unlock collectible cards.
-8. Complete the collection.
-9. View the innovation blueprint and final score.
+```mermaid
+flowchart TD
+    A[📱 Open app] --> B[🌐 Select language]
+    B --> C[💡 Choose innovation idea]
+    C --> D[🗺️ Explore interactive map]
+    D --> E[📍 Visit checkpoint]
+    E --> F[📷 Scan QR code]
+    F --> G[🎴 Unlock collectible card]
+    G --> H{More checkpoints?}
+    H -- Yes --> D
+    H -- No --> I[📊 View innovation blueprint & score]
+```
 
----
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | HTML, CSS, JavaScript |
+| Backend | Supabase |
+| Persistence | Local Storage API |
+| Scanning | QR Code Scanner API |
+| Design | Responsive Web Design |
 
 ## 📂 Project Structure
 
-```text
+```
 project/
-├── assets/
-├── css/
-├── js/
-├── pages/
-├── admin/
-├── data/
+├── assets/     # images, icons, illustrations
+├── css/        # stylesheets
+├── js/         # app logic
+├── pages/      # app screens
+├── admin/      # admin panel
+├── data/       # static / seed content
 └── README.md
 ```
 
----
-
 ## 🎯 Project Goals
 
-The application is designed to:
-
-* Transform a physical location into an interactive exploration experience.
-* Encourage discovery through gamification.
-* Connect real-world exploration with digital rewards.
-* Promote innovation through collectible knowledge cards.
-* Provide an easy-to-maintain content management system for administrators.
-
----
-
-## 📱 Key Highlights
-
-* 🌐 Bilingual interface
-* 📍 Interactive map navigation
-* 📷 QR code-based exploration
-* 🎴 Collectible reward cards
-* 💡 Innovation blueprint system
-* 💾 Persistent user progress
-* ☁️ Supabase integration
-* 📊 Offline-friendly analytics
-* 🔐 Admin content management
-* 📱 Mobile-first responsive design
-
----
+- Transform a physical location into an interactive exploration experience
+- Encourage discovery through gamification
+- Connect real-world exploration with digital rewards
+- Promote innovation through collectible knowledge cards
+- Provide an easy-to-maintain content management system for administrators
 
 ## 📄 License
 
