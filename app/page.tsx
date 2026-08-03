@@ -16,6 +16,17 @@ import pageBackground from '../gedung-solo-technopark_169.jpeg';
 
 type ViewState = 'landing' | 'map' | 'scanner' | 'teaser' | 'reveal' | 'inventory' | 'blueprint';
 type Lang = 'id' | 'en';
+type MainNavView = 'map' | 'inventory' | 'blueprint';
+
+const MAIN_VIEW_ORDER: Record<MainNavView, number> = {
+  map: 0,
+  inventory: 1,
+  blueprint: 2,
+};
+
+const isMainNavView = (value: ViewState): value is MainNavView => (
+  value === 'map' || value === 'inventory' || value === 'blueprint'
+);
 
 interface PlayerProgress {
   ideaId: string | null;
@@ -33,6 +44,7 @@ interface StatQueueItem {
 
 export default function GameApp() {
   const [view, setView] = useState<ViewState>('landing');
+  const [mainTransitionDirection, setMainTransitionDirection] = useState(0);
   const [lang, setLang] = useState<Lang>('id');
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [gameData, setGameData] = useState<GameData | null>(null);
@@ -106,6 +118,18 @@ export default function GameApp() {
   const handleStart = (ideaId: string) => {
     setProgress(prev => ({ ...prev, ideaId }));
     setView('map');
+  };
+
+  const navigateToView = (nextView: ViewState) => {
+    if (nextView === view) return;
+
+    if (isMainNavView(view) && isMainNavView(nextView)) {
+      setMainTransitionDirection(MAIN_VIEW_ORDER[nextView] > MAIN_VIEW_ORDER[view] ? 1 : -1);
+    } else {
+      setMainTransitionDirection(0);
+    }
+
+    setView(nextView);
   };
 
   const handleSelectIdea = (ideaId: string) => {
@@ -234,7 +258,10 @@ export default function GameApp() {
           )}
           
           {view === 'map' && gameData && (
-            <div className="h-full w-full animate-in fade-in duration-300">
+            <div
+              key={`map-view-${mainTransitionDirection}`}
+              className={`h-full w-full stp-main-view-transition ${mainTransitionDirection < 0 ? 'stp-main-view-back' : 'stp-main-view-forward'}`}
+            >
               <MapView 
                 gameData={gameData} 
                 progress={progress} 
@@ -244,6 +271,38 @@ export default function GameApp() {
                 t={t} 
                 lang={lang}
                 setLang={setLang}
+              />
+            </div>
+          )}
+
+          {view === 'inventory' && gameData && (
+            <div
+              key={`inventory-view-${mainTransitionDirection}`}
+              className={`stp-main-view-transition ${mainTransitionDirection < 0 ? 'stp-main-view-back' : 'stp-main-view-forward'}`}
+            >
+              <InventoryView 
+                gameData={gameData} 
+                progress={progress} 
+                onBackToMap={() => navigateToView('map')}
+                t={t}
+                lang={lang}
+              />
+            </div>
+          )}
+
+          {view === 'blueprint' && gameData && progress.ideaId && (
+            <div
+              key={`blueprint-view-${mainTransitionDirection}`}
+              className={`stp-main-view-transition ${mainTransitionDirection < 0 ? 'stp-main-view-back' : 'stp-main-view-forward'}`}
+            >
+              <BlueprintView 
+                gameData={gameData} 
+                progress={progress} 
+                onBackToMap={() => navigateToView('map')}
+                onSelectIdea={handleSelectIdea}
+                onOpenHowToPlay={() => setShowHowToPlay(true)}
+                t={t}
+                lang={lang}
               />
             </div>
           )}
@@ -285,31 +344,6 @@ export default function GameApp() {
             </div>
           )}
 
-          {view === 'inventory' && gameData && (
-            <div key="inventory-view" className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <InventoryView 
-                gameData={gameData} 
-                progress={progress} 
-                onBackToMap={() => setView('map')}
-                t={t}
-                lang={lang}
-              />
-            </div>
-          )}
-
-          {view === 'blueprint' && gameData && progress.ideaId && (
-            <div key="blueprint-view" className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <BlueprintView 
-                gameData={gameData} 
-                progress={progress} 
-                onBackToMap={() => setView('map')}
-                onSelectIdea={handleSelectIdea}
-                onOpenHowToPlay={() => setShowHowToPlay(true)}
-                t={t}
-                lang={lang}
-              />
-            </div>
-          )}
         </main>
 
         {showHowToPlay && (
@@ -326,7 +360,7 @@ export default function GameApp() {
             <div className="max-w-md w-full h-full grid grid-cols-3 items-center">
               <button
                 type="button"
-                onClick={() => setView('map')}
+                onClick={() => navigateToView('map')}
                 className={`flex flex-col items-center justify-center h-full w-full gap-0.5 transition-all ${
                   view === 'map' ? 'text-blue-600 font-black scale-105' : 'text-slate-500 hover:text-slate-800 font-medium'
                 }`}
@@ -337,7 +371,7 @@ export default function GameApp() {
               
               <button
                 type="button"
-                onClick={() => setView('inventory')}
+                onClick={() => navigateToView('inventory')}
                 className={`flex flex-col items-center justify-center h-full w-full gap-0.5 transition-all ${
                   view === 'inventory' ? 'text-blue-600 font-black scale-105' : 'text-slate-500 hover:text-slate-800 font-medium'
                 }`}
@@ -348,7 +382,7 @@ export default function GameApp() {
               
               <button
                 type="button"
-                onClick={() => setView('blueprint')}
+                onClick={() => navigateToView('blueprint')}
                 className={`flex flex-col items-center justify-center h-full w-full gap-0.5 transition-all ${
                   view === 'blueprint' ? 'text-blue-600 font-black scale-105' : 'text-slate-500 hover:text-slate-800 font-medium'
                 }`}
@@ -541,13 +575,25 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, onOpe
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-extrabold text-base leading-tight flex items-center gap-2">
+                    <h3 className="font-extrabold text-base leading-tight flex items-center gap-2 min-w-0">
                       <Target size={16} className={isSelected ? 'text-blue-400' : 'text-slate-500'} />
-                      <span>{lang === 'id' ? idea.nama_id : idea.nama_en}</span>
+                      <span className="min-w-0">{lang === 'id' ? idea.nama_id : idea.nama_en}</span>
                     </h3>
-                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${isSelected ? 'border-blue-400 bg-blue-600 text-white font-bold text-xs' : 'border-slate-600'}`}>
-                      {isSelected ? <Check size={12} strokeWidth={3} /> : null}
-                    </div>
+                    {isSelected ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onStart(idea.id);
+                        }}
+                        className="shrink-0 rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-black text-white shadow-md transition-all active:scale-95 flex items-center gap-1 border border-blue-400/50"
+                      >
+                        <span>Start</span>
+                        <ArrowRight size={13} strokeWidth={3} />
+                      </button>
+                    ) : (
+                      <div className="w-5 h-5 rounded-full border border-slate-600 shrink-0" />
+                    )}
                   </div>
 
                   {/* Clean Sentence Description ONLY (No crowded target pills by default) */}
@@ -598,15 +644,6 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, onOpe
         )}
       </div>
 
-      {/* Start Playing Button (Solid Blue) */}
-      <button 
-        onClick={() => selectedIdea && onStart(selectedIdea)}
-        disabled={isLoading || !selectedIdea}
-        className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-lg shadow-2xl active:scale-95 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group cursor-pointer border border-blue-400/30"
-      >
-        <span>{isLoading ? t('Memuat...', 'Loading...') : t('Mulai Petualangan', 'Start Adventure')}</span>
-        <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />
-      </button>
     </div>
   );
 }
@@ -615,6 +652,7 @@ function MapView({ gameData, progress, onScan, onScanManual, onOpenHowToPlay, t,
   const [selectedCheckpoint, setSelectedCheckpoint] = useState<any | null>(null);
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [isCheckpointPopupVisible, setIsCheckpointPopupVisible] = useState(false);
+  const [checkpointPopupAnimationKey, setCheckpointPopupAnimationKey] = useState(0);
   
   const targetCheckpoints = getTargetCheckpointsForIdea(progress.ideaId, gameData);
   const targetCheckpointIds = targetCheckpoints.map((cp: any) => cp.id);
@@ -946,6 +984,7 @@ function MapView({ gameData, progress, onScan, onScanManual, onOpenHowToPlay, t,
                   key={cp.id}
                   onClick={() => {
                     setSelectedCheckpoint(cp);
+                    setCheckpointPopupAnimationKey(prev => prev + 1);
                     setIsPopupVisible(true);
                     setIsCheckpointPopupVisible(true);
                     if (popupTimeoutRef.current) {
@@ -993,36 +1032,39 @@ function MapView({ gameData, progress, onScan, onScanManual, onOpenHowToPlay, t,
 
         {/* Selected Checkpoint Popup Overlay */}
         {selectedCheckpoint && (
-          <div className={`absolute left-4 top-28 z-40 max-w-[calc(100%-2rem)] sm:max-w-xs rounded-2xl border border-slate-200 bg-white/95 px-4 py-3 shadow-2xl backdrop-blur-md transition-all duration-300 ease-out ${isCheckpointPopupVisible && isPopupVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2'}`}>
-            <div className="flex items-start gap-2.5">
-              <Building size={18} className="mt-0.5 text-blue-600 shrink-0" />
-              <div>
-                {targetCheckpointIds.includes(selectedCheckpoint.id) && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-800 text-[10px] font-black rounded-md mb-1 border border-blue-200 uppercase tracking-wider">
-                    <Target size={11} className="text-blue-600" />
-                    <span>{t('Target Blueprint Kamu!', 'Your Blueprint Target!')}</span>
-                  </span>
-                )}
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-                  {t('Bangunan / area', 'Building / area')}
-                </p>
-                <p className="font-extrabold text-slate-800 text-sm">
-                  {selectedCheckpoint.status_akses === 'dilarang'
-                    ? t('Bangunan dalam pemeliharaan atau berbahaya', 'Building under maintenance or dangerous')
-                    : progress.scannedCheckpoints.includes(selectedCheckpoint.id)
-                      ? (lang === 'id' ? selectedCheckpoint.nama_id : selectedCheckpoint.nama_en)
-                      : t('Informasi belum diketahui', 'Information unknown')}
-                </p>
-                <p className="text-xs text-slate-600 mt-0.5">
-                  {selectedCheckpoint.status_akses === 'dilarang'
-                    ? t('Area ini tidak dapat dikunjungi saat ini.', 'This area is currently not accessible.')
-                    : progress.scannedCheckpoints.includes(selectedCheckpoint.id)
-                      ? `${t('Zona', 'Zone')}: ${gameData.zones.find((zone: any) => zone.id === selectedCheckpoint.zona_id)?.[lang === 'id' ? 'nama_id' : 'nama_en'] || '-'}`
-                      : t('Kunjungi checkpoint ini terlebih dahulu untuk melihat informasi bangunan.', 'Visit this checkpoint first to reveal building information.')}
-                </p>
+            <div
+              key={`${selectedCheckpoint.id}-${checkpointPopupAnimationKey}`}
+              className={`absolute left-4 top-28 z-40 max-w-[calc(100%-2rem)] sm:max-w-xs rounded-2xl border border-slate-200 bg-white/95 px-4 py-3 shadow-2xl backdrop-blur-md origin-top-left ${isCheckpointPopupVisible && isPopupVisible ? 'stp-checkpoint-popup-in' : 'stp-checkpoint-popup-out'}`}
+            >
+              <div className="flex items-start gap-2.5">
+                <Building size={18} className="mt-0.5 text-blue-600 shrink-0" />
+                <div>
+                  {targetCheckpointIds.includes(selectedCheckpoint.id) && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-800 text-[10px] font-black rounded-md mb-1 border border-blue-200 uppercase tracking-wider">
+                      <Target size={11} className="text-blue-600" />
+                      <span>{t('Target Blueprint Kamu!', 'Your Blueprint Target!')}</span>
+                    </span>
+                  )}
+                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+                    {t('Bangunan / area', 'Building / area')}
+                  </p>
+                  <p className="font-extrabold text-slate-800 text-sm">
+                    {selectedCheckpoint.status_akses === 'dilarang'
+                      ? t('Bangunan dalam pemeliharaan atau berbahaya', 'Building under maintenance or dangerous')
+                      : progress.scannedCheckpoints.includes(selectedCheckpoint.id)
+                        ? (lang === 'id' ? selectedCheckpoint.nama_id : selectedCheckpoint.nama_en)
+                        : t('Informasi belum diketahui', 'Information unknown')}
+                  </p>
+                  <p className="text-xs text-slate-600 mt-0.5">
+                    {selectedCheckpoint.status_akses === 'dilarang'
+                      ? t('Area ini tidak dapat dikunjungi saat ini.', 'This area is currently not accessible.')
+                      : progress.scannedCheckpoints.includes(selectedCheckpoint.id)
+                        ? `${t('Zona', 'Zone')}: ${gameData.zones.find((zone: any) => zone.id === selectedCheckpoint.zona_id)?.[lang === 'id' ? 'nama_id' : 'nama_en'] || '-'}`
+                        : t('Kunjungi checkpoint ini terlebih dahulu untuk melihat informasi bangunan.', 'Visit this checkpoint first to reveal building information.')}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
         )}
 
         {/* Floating Mobile/Touch Controls at Bottom Left (Reset Map + Zoom Controls) */}
@@ -1245,6 +1287,9 @@ function InventoryView({ gameData, progress, onBackToMap, t, lang }: any) {
   const selectedCheckpoint = selectedCard
     ? gameData.checkpoints.find((cp: any) => cp.id === selectedCard.checkpoint_id)
     : null;
+  const isSelectedCardCollected = selectedCard
+    ? progress.collectedCards.includes(selectedCard.id)
+    : false;
 
   useEffect(() => {
     if (!selectedCard) {
@@ -1285,11 +1330,16 @@ function InventoryView({ gameData, progress, onBackToMap, t, lang }: any) {
                 <button
                   key={card.id}
                   type="button"
-                  onClick={() => setSelectedCard(card)}
+                  onClick={() => {
+                    if (isCollected) {
+                      setSelectedCard(card);
+                    }
+                  }}
+                  aria-disabled={!isCollected}
                   className={`aspect-[3/4] rounded-xl flex flex-col p-2 text-center transition-all duration-300 ${
                     isCollected 
                       ? 'bg-white/90 shadow-md border border-white text-slate-900 hover:scale-[1.03] hover:-translate-y-1 animate-pulse' 
-                      : 'bg-white/10 border border-dashed border-white/30 text-white/50 backdrop-blur-sm items-center justify-center hover:bg-white/15 hover:scale-[1.02] hover:-translate-y-0.5'
+                      : 'cursor-default bg-white/10 border border-dashed border-white/30 text-white/50 backdrop-blur-sm items-center justify-center'
                   }`}
                 >
                   {isCollected ? (
@@ -1340,10 +1390,12 @@ function InventoryView({ gameData, progress, onBackToMap, t, lang }: any) {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                  {selectedCard.tipe}
+                  {isSelectedCardCollected ? selectedCard.tipe : t('Tersembunyi', 'Hidden')}
                 </p>
                 <h3 className="mt-1 text-xl font-black text-slate-900">
-                  {lang === 'id' ? selectedCheckpoint?.nama_id : selectedCheckpoint?.nama_en}
+                  {isSelectedCardCollected
+                    ? (lang === 'id' ? selectedCheckpoint?.nama_id : selectedCheckpoint?.nama_en)
+                    : t('Kartu Misteri', 'Mystery Card')}
                 </h3>
               </div>
               <button
@@ -1360,7 +1412,11 @@ function InventoryView({ gameData, progress, onBackToMap, t, lang }: any) {
 
             <div className="mt-4 aspect-[3/4] rounded-[1.5rem] bg-slate-100 p-3 flex items-center justify-center overflow-hidden relative">
               <div className="absolute inset-0 bg-gradient-to-br from-slate-200/70 via-white/20 to-blue-100/70 blur-xl opacity-80" />
-              {selectedCard.ikon_url ? (
+              {!isSelectedCardCollected ? (
+                <div className="relative flex h-full w-full items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/50 text-6xl font-black text-slate-300">
+                  ?
+                </div>
+              ) : selectedCard.ikon_url ? (
                 <img src={selectedCard.ikon_url} alt="Card" className="relative h-full w-full object-contain rounded-2xl transition-transform duration-500 hover:scale-[1.04]" />
               ) : (
                 <div className="relative text-slate-400 font-medium">[{t('Gambar', 'Image')}]</div>
@@ -1368,7 +1424,7 @@ function InventoryView({ gameData, progress, onBackToMap, t, lang }: any) {
             </div>
 
             <p className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 leading-6 transition-all duration-300 hover:bg-slate-100">
-              {progress.collectedCards.includes(selectedCard.id)
+              {isSelectedCardCollected
                 ? (lang === 'id' ? selectedCheckpoint?.reveal_id : selectedCheckpoint?.reveal_en)
                 : t('Kartu ini belum terkumpul', 'This card has not been collected yet')}
             </p>
