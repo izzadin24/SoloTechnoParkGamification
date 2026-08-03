@@ -1,14 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GameData, fetchGameData } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { Map, ScanLine, LayoutGrid, Hammer, X, Check, ArrowRight, Lock, Star, Plus, Minus, RotateCcw, Building, QrCode, Compass, Keyboard } from 'lucide-react';
+import { Map, ScanLine, LayoutGrid, Hammer, X, Check, ArrowRight, Lock, Star } from 'lucide-react';
 
 import snapshotData from '../data/snapshot.json';
-import mapImage from '../imageclip_opt.webp';
-import pageBackground from '../gedung-solo-technopark_169.jpeg';
 
 type ViewState = 'landing' | 'map' | 'scanner' | 'teaser' | 'reveal' | 'inventory' | 'blueprint';
 type Lang = 'id' | 'en';
@@ -17,9 +15,9 @@ interface PlayerProgress {
   ideaId: string | null;
   scannedCheckpoints: string[];
   collectedCards: string[];
-  lastVisitedCheckpointId: string | null;
 }
 
+// Queue for offline stats sending
 interface StatQueueItem {
   checkpoint_id: string;
   terakhir_update: string;
@@ -32,15 +30,16 @@ export default function GameApp() {
   const [progress, setProgress] = useState<PlayerProgress>({
     ideaId: null,
     scannedCheckpoints: [],
-    collectedCards: [],
-    lastVisitedCheckpointId: null
+    collectedCards: []
   });
   const [currentScan, setCurrentScan] = useState<{ checkpointId: string; cardId: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  // Offline stats queue
   const [statQueue, setStatQueue] = useState<StatQueueItem[]>([]);
 
+  // Load state from local storage on mount
   useEffect(() => {
     const loadInitialData = async () => {
       const savedProgress = localStorage.getItem('stp_progress');
@@ -53,23 +52,27 @@ export default function GameApp() {
       if (savedData) {
         setGameData(JSON.parse(savedData));
       } else {
-        setGameData(snapshotData as GameData);
+        setGameData(snapshotData as GameData); // Initialize with snapshot immediately
       }
 
+      // Silent background refresh
       try {
         const data = await fetchGameData();
+        // Ensure data is valid before replacing
         if (data && data.zones.length > 0) {
           setGameData(data);
           localStorage.setItem('stp_gamedata', JSON.stringify(data));
+          console.log('Background sync successful');
         }
       } catch (e) {
-        console.warn('Background sync failed', e);
+        console.warn('Background sync failed, using cached/snapshot data', e);
       }
     };
     
     loadInitialData();
   }, []);
 
+  // Save progress and queue to local storage when changed
   useEffect(() => {
     localStorage.setItem('stp_progress', JSON.stringify(progress));
   }, [progress]);
@@ -79,6 +82,7 @@ export default function GameApp() {
     processStatQueue();
   }, [statQueue]);
 
+  // Online status listener
   useEffect(() => {
     const handleOnline = () => processStatQueue();
     window.addEventListener('online', handleOnline);
@@ -96,25 +100,22 @@ export default function GameApp() {
     }
   };
 
-  const handleStart = (ideaId: string) => {
-    setProgress(prev => ({ ...prev, ideaId }));
+  const handleStart = async (selectedIdeaId: string) => {
+    if (!gameData || gameData.ideas.length === 0) {
+      setError(lang === 'id' ? 'Data ide belum termuat. Cek koneksi Supabase.' : 'Ideas data not loaded. Check Supabase connection.');
+      return;
+    }
+    setProgress({ ...progress, ideaId: selectedIdeaId });
     setView('map');
   };
 
   const handleScanSuccess = (decodedText: string) => {
     if (!gameData) return;
     
+    // Scan expects QR code to match kode_qr
     const checkpoint = gameData.checkpoints.find(c => c.kode_qr === decodedText);
     if (!checkpoint) {
       alert(lang === 'id' ? 'QR tidak valid' : 'Invalid QR');
-      return;
-    }
-
-    if (checkpoint.status_akses === 'dilarang') {
-      alert(lang === 'id' 
-        ? 'Area ini tidak boleh dikunjungi. Checkpoint tidak tersedia di sini.' 
-        : 'This area is off-limits. No checkpoint is available here.');
-      setView('map');
       return;
     }
 
@@ -132,12 +133,8 @@ export default function GameApp() {
     }
 
     setCurrentScan({ checkpointId: checkpoint.id, cardId: card.id });
-
-    setProgress(prev => ({
-      ...prev,
-      lastVisitedCheckpointId: checkpoint.id
-    }));
     
+    // Add to stat queue
     setStatQueue(prev => [...prev, { checkpoint_id: checkpoint.id, terakhir_update: new Date().toISOString() }]);
     
     setView('teaser');
@@ -156,178 +153,102 @@ export default function GameApp() {
   const t = (idText: string, enText: string) => lang === 'id' ? idText : enText;
 
   return (
-    <div
-      className="fixed inset-0 w-full h-full bg-slate-50 text-slate-900 font-sans overflow-hidden flex flex-col"
-      style={{
-        backgroundImage: `url(${pageBackground.src})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}
-    >
-      <div className="w-full h-full bg-slate-950/55 backdrop-blur-[2px] flex flex-col overflow-hidden relative">
-        {/* Top Header Bar for non-map sub-pages */}
-        {view !== 'landing' && view !== 'map' && (
-          <header className="shrink-0 h-12 w-full z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 flex justify-between items-center shadow-sm">
-            <div className="font-extrabold text-lg text-slate-800 tracking-tight">
-              Jelajah STP
-            </div>
-            
-            <div className="flex items-center gap-2">
-              {/* Language Switcher */}
-              <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
-                <button 
-                  onClick={() => setLang('id')} 
-                  className={`px-2.5 py-0.5 rounded-lg text-xs font-bold transition-all ${lang === 'id' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                >
-                  ID
-                </button>
-                <button 
-                  onClick={() => setLang('en')} 
-                  className={`px-2.5 py-0.5 rounded-lg text-xs font-bold transition-all ${lang === 'en' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                >
-                  EN
-                </button>
-              </div>
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
+      {view !== 'landing' && (
+        <header className="sticky top-0 z-50 bg-white border-b border-slate-200 px-4 py-3 flex justify-between items-center">
+          <div className="font-bold text-lg text-slate-800">
+            Jelajah STP
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setView('map')} className={`p-2 rounded-lg ${view === 'map' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
+              <Map size={20} />
+            </button>
+            <button onClick={() => setView('scanner')} className={`p-2 rounded-lg ${view === 'scanner' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
+              <ScanLine size={20} />
+            </button>
+            <button onClick={() => setView('inventory')} className={`p-2 rounded-lg ${view === 'inventory' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
+              <LayoutGrid size={20} />
+            </button>
+            <button onClick={() => setView('blueprint')} className={`p-2 rounded-lg ${view === 'blueprint' ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}>
+              <Hammer size={20} />
+            </button>
+          </div>
+        </header>
+      )}
 
-              <div className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60 uppercase">
-                {view === 'inventory' ? t('Kartu', 'Cards') : view === 'blueprint' ? 'Blueprint' : view === 'scanner' ? 'Scanner' : view}
-              </div>
-            </div>
-          </header>
+      <main className="max-w-md mx-auto p-4 pb-24">
+        {view === 'landing' && (
+          <LandingView 
+            lang={lang} 
+            setLang={setLang} 
+            gameData={gameData}
+            isLoading={isLoading}
+            error={error}
+            onStart={handleStart}
+            t={t}
+          />
+        )}
+        
+        {view === 'map' && gameData && (
+          <MapView 
+            gameData={gameData} 
+            progress={progress} 
+            onScan={() => setView('scanner')} 
+            onScanManual={handleScanSuccess}
+            t={t} 
+            lang={lang}
+          />
+        )}
+        
+        {view === 'scanner' && (
+          <ScannerView 
+            onSuccess={handleScanSuccess} 
+            onCancel={() => setView('map')} 
+            t={t}
+            lang={lang}
+          />
         )}
 
-        <main className={view === 'map' ? "flex-1 w-full relative overflow-hidden flex flex-col" : "flex-1 w-full max-w-md mx-auto p-4 pb-4 overflow-y-auto flex flex-col transition-all duration-300 ease-out"}>
-          {view === 'landing' && (
-            <div className="animate-in fade-in duration-300">
-              <LandingView 
-                lang={lang} 
-                setLang={setLang} 
-                gameData={gameData}
-                isLoading={isLoading}
-                error={error}
-                onStart={handleStart}
-                t={t}
-              />
-            </div>
-          )}
-          
-          {view === 'map' && gameData && (
-            <div className="h-full w-full animate-in fade-in duration-300">
-              <MapView 
-                gameData={gameData} 
-                progress={progress} 
-                onScan={() => setView('scanner')} 
-                onScanManual={handleScanSuccess}
-                t={t} 
-                lang={lang}
-                setLang={setLang}
-              />
-            </div>
-          )}
-          
-          {view === 'scanner' && (
-            <div className="animate-in fade-in duration-300">
-              <ScannerView 
-                onSuccess={handleScanSuccess} 
-                onCancel={() => setView('map')} 
-                t={t}
-                lang={lang}
-              />
-            </div>
-          )}
-
-          {view === 'teaser' && currentScan && gameData && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <TeaserView 
-                card={gameData.cards.find(c => c.id === currentScan.cardId)!} 
-                onContinue={claimCard} 
-                t={t}
-                lang={lang}
-              />
-            </div>
-          )}
-
-          {view === 'reveal' && currentScan && gameData && (
-            <div className="animate-in zoom-in-90 duration-400">
-              <RevealView 
-                card={gameData.cards.find(c => c.id === currentScan.cardId)!} 
-                checkpoint={gameData.checkpoints.find(c => c.id === currentScan.checkpointId)!}
-                onClose={() => {
-                  setCurrentScan(null);
-                  setView('inventory');
-                }} 
-                t={t}
-                lang={lang}
-              />
-            </div>
-          )}
-
-          {view === 'inventory' && gameData && (
-            <div key="inventory-view" className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <InventoryView 
-                gameData={gameData} 
-                progress={progress} 
-                onBackToMap={() => setView('map')}
-                t={t}
-                lang={lang}
-              />
-            </div>
-          )}
-
-          {view === 'blueprint' && gameData && progress.ideaId && (
-            <div key="blueprint-view" className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <BlueprintView 
-                gameData={gameData} 
-                progress={progress} 
-                onBackToMap={() => setView('map')}
-                t={t}
-                lang={lang}
-              />
-            </div>
-          )}
-        </main>
-
-        {/* Fixed Non-overlapping Bottom Navigation Bar */}
-        {view !== 'landing' && (
-          <nav className="shrink-0 h-16 w-full bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-2xl flex justify-center items-center select-none z-40">
-            <div className="max-w-md w-full h-full grid grid-cols-3 items-center">
-              <button
-                type="button"
-                onClick={() => setView('map')}
-                className={`flex flex-col items-center justify-center h-full w-full gap-0.5 transition-all ${
-                  view === 'map' ? 'text-blue-600 font-black scale-105' : 'text-slate-500 hover:text-slate-800 font-medium'
-                }`}
-              >
-                <Map size={22} strokeWidth={view === 'map' ? 2.5 : 2} />
-                <span className="text-[10px] tracking-wider uppercase font-black leading-none text-center">{t('PETA', 'MAP')}</span>
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => setView('inventory')}
-                className={`flex flex-col items-center justify-center h-full w-full gap-0.5 transition-all ${
-                  view === 'inventory' ? 'text-blue-600 font-black scale-105' : 'text-slate-500 hover:text-slate-800 font-medium'
-                }`}
-              >
-                <LayoutGrid size={22} strokeWidth={view === 'inventory' ? 2.5 : 2} />
-                <span className="text-[10px] tracking-wider uppercase font-black leading-none text-center">{t('KARTU', 'CARDS')}</span>
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => setView('blueprint')}
-                className={`flex flex-col items-center justify-center h-full w-full gap-0.5 transition-all ${
-                  view === 'blueprint' ? 'text-blue-600 font-black scale-105' : 'text-slate-500 hover:text-slate-800 font-medium'
-                }`}
-              >
-                <Hammer size={22} strokeWidth={view === 'blueprint' ? 2.5 : 2} />
-                <span className="text-[10px] tracking-wider uppercase font-black leading-none text-center">BLUEPRINT</span>
-              </button>
-            </div>
-          </nav>
+        {view === 'teaser' && currentScan && gameData && (
+          <TeaserView 
+            card={gameData.cards.find(c => c.id === currentScan.cardId)!} 
+            onContinue={claimCard} 
+            t={t}
+            lang={lang}
+          />
         )}
-      </div>
+
+        {view === 'reveal' && currentScan && gameData && (
+          <RevealView 
+            card={gameData.cards.find(c => c.id === currentScan.cardId)!} 
+            checkpoint={gameData.checkpoints.find(c => c.id === currentScan.checkpointId)!}
+            onClose={() => {
+              setCurrentScan(null);
+              setView('inventory');
+            }} 
+            t={t}
+            lang={lang}
+          />
+        )}
+
+        {view === 'inventory' && gameData && (
+          <InventoryView 
+            gameData={gameData} 
+            progress={progress} 
+            t={t}
+            lang={lang}
+          />
+        )}
+
+        {view === 'blueprint' && gameData && progress.ideaId && (
+          <BlueprintView 
+            gameData={gameData} 
+            progress={progress} 
+            t={t}
+            lang={lang}
+          />
+        )}
+      </main>
     </div>
   );
 }
@@ -338,6 +259,7 @@ export default function GameApp() {
 
 function LandingView({ lang, setLang, gameData, isLoading, error, onStart, t }: any) {
   const ideas = gameData?.ideas || [];
+  
   const [selectedIdea, setSelectedIdea] = useState<string | null>(null);
 
   useEffect(() => {
@@ -348,9 +270,9 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, t }: 
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] text-center space-y-8">
-      <div className="rounded-2xl border border-white/30 bg-white/15 px-6 py-5 shadow-xl backdrop-blur-md">
-        <h1 className="text-3xl font-black text-white mb-2">Jelajah Solo Technopark</h1>
-        <p className="text-slate-100">{t('Mulai petualangan inovasimu', 'Start your innovation journey')}</p>
+      <div>
+        <h1 className="text-3xl font-black text-slate-800 mb-2">Jelajah Solo Technopark</h1>
+        <p className="text-slate-600">{t('Mulai petualangan inovasimu', 'Start your innovation journey')}</p>
       </div>
 
       <div className="flex bg-slate-200 p-1 rounded-full w-full max-w-[200px]">
@@ -368,10 +290,10 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, t }: 
         </button>
       </div>
 
-      <div className="w-full rounded-2xl border border-white/30 bg-slate-950/35 p-4 text-left shadow-xl backdrop-blur-xl">
-        <h2 className="font-bold text-lg mb-3 text-white">{t('Pilih Ide Produkmu:', 'Choose Your Product Idea:')}</h2>
+      <div className="w-full text-left">
+        <h2 className="font-bold text-lg mb-3">{t('Pilih Ide Produkmu:', 'Choose Your Product Idea:')}</h2>
         {isLoading ? (
-          <div className="p-4 rounded-xl border border-white/20 bg-white/80 text-center text-slate-600 animate-pulse">
+          <div className="p-4 rounded-xl border-2 border-slate-200 bg-slate-50 text-center text-slate-500 animate-pulse">
             {t('Memuat data dari Supabase...', 'Loading data from Supabase...')}
           </div>
         ) : ideas.length > 0 ? (
@@ -380,21 +302,21 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, t }: 
               <div 
                 key={idea.id} 
                 onClick={() => setSelectedIdea(idea.id)}
-                className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedIdea === idea.id ? 'border-blue-400 bg-blue-600/90 text-white shadow-md' : 'border-white/20 bg-white/85 text-slate-800'}`}
+                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedIdea === idea.id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'}`}
               >
-                <h3 className="font-bold">{lang === 'id' ? idea.nama_id : idea.nama_en}</h3>
+                <h3 className="font-bold text-blue-900">{lang === 'id' ? idea.nama_id : idea.nama_en}</h3>
               </div>
             ))}
           </div>
         ) : (
-          <div className="p-4 rounded-xl border border-red-200/70 bg-red-50/90 text-red-700 text-sm">
+          <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
             {error || t('Gagal memuat data ide, cek koneksi Supabase', 'Failed to load ideas data, check Supabase connection')}
           </div>
         )}
       </div>
 
       {error && ideas.length > 0 && (
-        <div className="p-3 bg-red-100/90 text-red-700 rounded-lg text-sm w-full">
+        <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm w-full">
           {error}
         </div>
       )}
@@ -402,7 +324,7 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, t }: 
       <button 
         onClick={() => selectedIdea && onStart(selectedIdea)}
         disabled={isLoading || !selectedIdea}
-        className="w-full py-4 rounded-xl bg-blue-600 text-white font-bold text-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-all duration-300 disabled:opacity-50 hover:-translate-y-0.5"
+        className="w-full py-4 rounded-xl bg-blue-600 text-white font-bold text-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50"
       >
         {isLoading ? t('Memuat Data...', 'Loading Data...') : t('Mulai Bermain', 'Start Playing')}
       </button>
@@ -410,410 +332,124 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, t }: 
   );
 }
 
-function MapView({ gameData, progress, onScan, onScanManual, t, lang, setLang }: any) {
-  const [selectedCheckpoint, setSelectedCheckpoint] = useState<any | null>(null);
-  const [isPopupVisible, setIsPopupVisible] = useState(false);
-  const [isCheckpointPopupVisible, setIsCheckpointPopupVisible] = useState(false);
-  
-  // Direct refs for 60FPS GPU hardware acceleration without React re-render overhead
-  const scaleRef = useRef(1);
-  const panRef = useRef({ x: 0, y: 0 });
-  const isDraggingRef = useRef(false);
-  const pointerStartRef = useRef({ x: 0, y: 0 });
-  const touchStateRef = useRef<{ x: number; y: number; dist: number } | null>(null);
-  const rafIdRef = useRef<number | null>(null);
+function MapView({ gameData, progress, onScan, onScanManual, t, lang }: any) {
+  const [manualCode, setManualCode] = useState('');
+  const [activeCheckpoint, setActiveCheckpoint] = useState<any>(null);
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapContentRef = useRef<HTMLDivElement>(null);
-  const zoomBadgeRef = useRef<HTMLDivElement>(null);
-  const popupTimeoutRef = useRef<number | null>(null);
-  const zoomTimeoutRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (!selectedCheckpoint) {
-      setIsCheckpointPopupVisible(false);
-      return;
+  const getZonePath = (zoneId: string) => {
+    switch (zoneId) {
+      case 'zona-1': return "M10,5 Q50,0 90,5 T95,20 Q80,25 50,30 T10,20 Q0,15 10,5 Z";
+      case 'zona-2': return "M10,35 Q50,30 90,35 T95,50 Q80,55 50,60 T10,50 Q0,45 10,35 Z";
+      case 'zona-3': return "M10,65 Q50,60 90,65 T95,80 Q80,85 50,90 T10,80 Q0,75 10,65 Z";
+      default: return "";
     }
-
-    const timer = window.setTimeout(() => setIsCheckpointPopupVisible(true), 10);
-    return () => window.clearTimeout(timer);
-  }, [selectedCheckpoint]);
-
-  // DOKUMEN WARNA BERDASARKAN ZONA_ID
-  const getZoneColor = (zonaId: string) => {
-    switch (zonaId) {
-      case 'zona-1':
-        return {
-          bg: 'bg-amber-500',
-          border: 'border-amber-200',
-          dot: 'bg-amber-200',
-        };
-      case 'zona-2':
-        return {
-          bg: 'bg-blue-700',
-          border: 'border-blue-300',
-          dot: 'bg-blue-200',
-        };
-      case 'zona-3':
-        return {
-          bg: 'bg-rose-500',
-          border: 'border-rose-200',
-          dot: 'bg-rose-200',
-        };
-      case 'zona-4':
-        return {
-          bg: 'bg-purple-500',
-          border: 'border-purple-200',
-          dot: 'bg-purple-200',
-        };
-      default:
-        return {
-          bg: 'bg-sky-500',
-          border: 'border-sky-200',
-          dot: 'bg-sky-200',
-        };
-    }
-  };
-
-  const clampScale = (val: number) => Math.min(3, Math.max(0.5, val));
-
-  // Ultra-fast GPU hardware layer transform update (0 React re-renders during active gestures)
-  const applyTransform = () => {
-    if (mapContentRef.current) {
-      mapContentRef.current.style.transform = `translate3d(${panRef.current.x}px, ${panRef.current.y}px, 0) scale(${scaleRef.current})`;
-    }
-    if (zoomBadgeRef.current) {
-      zoomBadgeRef.current.textContent = `${Math.round(scaleRef.current * 100)}%`;
-      zoomBadgeRef.current.style.opacity = '1';
-      if (zoomTimeoutRef.current) {
-        window.clearTimeout(zoomTimeoutRef.current);
-      }
-      zoomTimeoutRef.current = window.setTimeout(() => {
-        if (zoomBadgeRef.current) {
-          zoomBadgeRef.current.style.opacity = '0';
-        }
-      }, 1200);
-    }
-  };
-
-  const scheduleUpdate = () => {
-    if (rafIdRef.current === null) {
-      rafIdRef.current = requestAnimationFrame(() => {
-        applyTransform();
-        rafIdRef.current = null;
-      });
-    }
-  };
-
-  const handleZoomIn = () => {
-    scaleRef.current = clampScale(scaleRef.current + 0.25);
-    scheduleUpdate();
-  };
-
-  const handleZoomOut = () => {
-    scaleRef.current = clampScale(scaleRef.current - 0.25);
-    scheduleUpdate();
-  };
-
-  const handleResetZoom = () => {
-    scaleRef.current = 1;
-    panRef.current = { x: 0, y: 0 };
-    scheduleUpdate();
-  };
-
-  const handleWheel = (event: React.WheelEvent) => {
-    event.preventDefault();
-    const direction = event.deltaY > 0 ? -0.1 : 0.1;
-    scaleRef.current = clampScale(scaleRef.current + direction);
-    scheduleUpdate();
-  };
-
-  // Mouse Pointer Dragging (Desktop)
-  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === 'touch') return;
-    event.preventDefault();
-    isDraggingRef.current = true;
-    pointerStartRef.current = { x: event.clientX - panRef.current.x, y: event.clientY - panRef.current.y };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === 'touch' || !isDraggingRef.current) return;
-    event.preventDefault();
-    panRef.current = {
-      x: event.clientX - pointerStartRef.current.x,
-      y: event.clientY - pointerStartRef.current.y,
-    };
-    scheduleUpdate();
-  };
-
-  const stopPointerDragging = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === 'touch') return;
-    isDraggingRef.current = false;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-  };
-
-  // Touch Handlers for Android Mobile Devices (1-finger pan, 2-finger pinch & pan)
-  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (e.touches.length === 1) {
-      touchStateRef.current = {
-        x: e.touches[0].clientX - panRef.current.x,
-        y: e.touches[0].clientY - panRef.current.y,
-        dist: 0,
-      };
-    } else if (e.touches.length === 2) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-      touchStateRef.current = {
-        x: midX - panRef.current.x,
-        y: midY - panRef.current.y,
-        dist,
-      };
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!touchStateRef.current) return;
-
-    if (e.touches.length === 1) {
-      panRef.current = {
-        x: e.touches[0].clientX - touchStateRef.current.x,
-        y: e.touches[0].clientY - touchStateRef.current.y,
-      };
-      scheduleUpdate();
-    } else if (e.touches.length === 2) {
-      if (e.cancelable) e.preventDefault();
-
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-
-      if (touchStateRef.current.dist > 0) {
-        const ratio = dist / touchStateRef.current.dist;
-        scaleRef.current = clampScale(scaleRef.current * ratio);
-      }
-
-      panRef.current = {
-        x: midX - touchStateRef.current.x,
-        y: midY - touchStateRef.current.y,
-      };
-      touchStateRef.current.dist = dist;
-      scheduleUpdate();
-    }
-  };
-
-  const handleTouchEnd = () => {
-    touchStateRef.current = null;
   };
 
   return (
-    <div className="relative flex-1 w-full h-full overflow-hidden bg-slate-950 select-none touch-none animate-in fade-in duration-300">
-      {/* Top Floating App Title & Language Switcher */}
-      <div className="absolute top-4 left-4 right-4 z-30 flex items-center justify-between pointer-events-none">
-        <div className="pointer-events-auto bg-white/95 backdrop-blur-md border border-slate-200 px-4 py-2 rounded-2xl shadow-xl font-black text-slate-800 text-base flex items-center gap-2">
-          <Map className="text-blue-600" size={20} />
-          <span>Jelajah STP</span>
-        </div>
-
-        {/* High Contrast Prominent Language Switcher Toggle (ID / EN) */}
-        <div className="pointer-events-auto flex bg-white/95 backdrop-blur-md p-1 rounded-2xl border border-slate-200 shadow-xl">
-          <button 
-            type="button"
-            onClick={() => setLang('id')} 
-            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
-              lang === 'id' ? 'bg-blue-600 text-white shadow-md scale-105' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            ID
-          </button>
-          <button 
-            type="button"
-            onClick={() => setLang('en')} 
-            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
-              lang === 'en' ? 'bg-blue-600 text-white shadow-md scale-105' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            EN
-          </button>
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+        <h2 className="font-black text-xl mb-4">{t('Peta Kawasan', 'Area Map')}</h2>
+        
+        <div 
+          className="w-full aspect-[4/5] bg-slate-50 rounded-xl relative overflow-hidden border-2 border-slate-200"
+          onClick={() => setActiveCheckpoint(null)}
+        >
+          <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-sm">
+            {/* Zones */}
+            {gameData.zones.map((zone: any) => (
+              <path 
+                key={zone.id} 
+                d={getZonePath(zone.id)} 
+                fill={zone.warna_tema || '#ccc'} 
+                fillOpacity={0.15}
+                stroke={zone.warna_tema || '#ccc'}
+                strokeWidth="0.5"
+              />
+            ))}
+            
+            {/* Checkpoints */}
+            {gameData.checkpoints.map((cp: any) => {
+              const isDone = progress.scannedCheckpoints.includes(cp.id);
+              const zone = gameData.zones.find((z: any) => z.id === cp.zona_id);
+              const color = zone?.warna_tema || '#3b82f6';
+              const x = (cp.posisi_x || 20) * 2;
+              const y = cp.posisi_y || 20;
+              
+              return (
+                <g 
+                  key={cp.id} 
+                  transform={`translate(${x}, ${y})`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveCheckpoint(cp);
+                  }}
+                  className="cursor-pointer hover:opacity-80 transition-opacity"
+                >
+                  {isDone ? (
+                    <>
+                      <circle cx="0" cy="0" r="3.5" fill={color} stroke="white" strokeWidth="1" />
+                      <path d="M-1.2,-0.2 L-0.3,0.8 L1.5,-1" fill="none" stroke="white" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                    </>
+                  ) : cp.bonus ? (
+                    <>
+                      <polygon points="0,-4 1.2,-1.2 4,-1.2 1.8,0.8 2.5,3.8 0,2 -2.5,3.8 -1.8,0.8 -4,-1.2 -1.2,-1.2" fill="#fff" stroke="#94a3b8" strokeWidth="0.5" />
+                      <path d="M-1.5,-1.5 L-1.5,-2.5 A1.5,1.5 0 0,1 1.5,-2.5 L1.5,-1.5 M-2,-1.5 L2,-1.5 L2,1.5 L-2,1.5 Z" fill="none" stroke="#94a3b8" strokeWidth="0.5" transform="scale(0.5) translate(0,1)" />
+                    </>
+                  ) : (
+                    <>
+                      <rect x="-3" y="-3" width="6" height="6" rx="1" fill="#fff" stroke="#94a3b8" strokeWidth="0.8" />
+                      <path d="M-1,-0.5 L-1,-1.5 A1,1 0 0,1 1,-1.5 L1,-0.5 M-1.5,-0.5 L1.5,-0.5 L1.5,1.5 L-1.5,1.5 Z" fill="none" stroke="#94a3b8" strokeWidth="0.4" />
+                    </>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+          
+          {/* Tooltip */}
+          {activeCheckpoint && (
+            <div 
+              className="absolute bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-xl pointer-events-none transform -translate-x-1/2 -translate-y-full mb-3 z-10 whitespace-nowrap animate-in fade-in zoom-in-95 duration-200"
+              style={{ 
+                left: `${(activeCheckpoint.posisi_x || 20) * 2}%`, 
+                top: `${activeCheckpoint.posisi_y || 20}%` 
+              }}
+            >
+              {progress.scannedCheckpoints.includes(activeCheckpoint.id) 
+                ? (lang === 'id' ? activeCheckpoint.nama_id : activeCheckpoint.nama_en)
+                : (lang === 'id' ? 'Lokasi Misteri' : 'Mystery Location')}
+              <div className="absolute left-1/2 bottom-0 transform -translate-x-1/2 translate-y-full border-4 border-transparent border-t-slate-900"></div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Viewport Peta Full-Bleed Center */}
-      <div 
-        ref={containerRef}
-        className="relative w-full h-full overflow-hidden bg-slate-900 touch-none select-none flex items-center justify-center"
-        onWheel={handleWheel}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={stopPointerDragging}
-        onPointerLeave={stopPointerDragging}
-        onPointerCancel={stopPointerDragging}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={handleTouchEnd}
-        onContextMenu={(event) => event.preventDefault()}
+      <button 
+        onClick={onScan}
+        className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-slate-900 text-white font-bold text-lg shadow-xl shadow-slate-900/20 active:scale-95 transition-all"
       >
-        {/* Pembungkus Zoom GPU Accelerated Layer */}
-        <div
-          ref={mapContentRef}
-          className="origin-center flex items-center justify-center min-w-full min-h-full"
-          style={{ 
-            willChange: 'transform',
-            transform: `translate3d(${panRef.current.x}px, ${panRef.current.y}px, 0) scale(${scaleRef.current})`,
-            backfaceVisibility: 'hidden',
-            WebkitBackfaceVisibility: 'hidden'
-          }}
-        >
-          <div className="relative inline-block w-fit h-fit">
-            <img
-              src={mapImage.src}
-              alt={t('Peta kawasan', 'Area map')}
-              className="max-w-full max-h-[85vh] object-contain cursor-grab pointer-events-none block bg-transparent drop-shadow-none"
-              draggable={false}
-              style={{ imageRendering: 'auto' }}
-            />
-
-            {/* RENDER PIN CHECKPOINT DENGAN WARNA DINAMIS */}
-            {gameData?.checkpoints?.map((cp: any) => {
-              const isScanned = progress.scannedCheckpoints.includes(cp.id);
-              const isLastVisited = progress.lastVisitedCheckpointId === cp.id;
-              const isRestricted = cp.status_akses === 'dilarang';
-              const posX = cp.posisi_x ?? 50;
-              const posY = cp.posisi_y ?? 50;
-              
-              const zoneColor = getZoneColor(cp.zona_id);
-              const restrictedLabel = t('Area terlarang - tidak boleh dikunjungi', 'Restricted area - off-limits');
-              const pinLabel = lang === 'id' ? cp.nama_id : cp.nama_en;
-
-              return (
-                <div
-                  key={cp.id}
-                  onClick={() => {
-                    setSelectedCheckpoint(cp);
-                    setIsPopupVisible(true);
-                    setIsCheckpointPopupVisible(true);
-                    if (popupTimeoutRef.current) {
-                      window.clearTimeout(popupTimeoutRef.current);
-                    }
-                    popupTimeoutRef.current = window.setTimeout(() => {
-                      setIsPopupVisible(false);
-                      window.setTimeout(() => {
-                        setIsCheckpointPopupVisible(false);
-                        setSelectedCheckpoint(null);
-                      }, 180);
-                    }, 2500);
-                  }}
-                  className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 transition-transform ${
-                    isRestricted ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-125 active:scale-110'
-                  }`}
-                  style={{ left: `${posX}%`, top: `${posY}%` }}
-                  title={isRestricted ? `${pinLabel} — ${restrictedLabel}` : pinLabel}
-                >
-                  {isRestricted ? (
-                    <div className={`w-6 h-6 bg-slate-700 border-2 border-red-400 rounded-full shadow-md flex items-center justify-center active:scale-90 transition-transform ${isLastVisited ? 'animate-bounce' : ''}`}>
-                      <Lock size={11} className="text-red-300" strokeWidth={2.5} />
-                    </div>
-                  ) : isScanned ? (
-                    <div className={`w-7 h-7 bg-emerald-500 border-2 border-white text-white rounded-full flex items-center justify-center shadow-lg ${isLastVisited ? 'animate-bounce' : ''}`}>
-                      <Check size={16} strokeWidth={3} />
-                    </div>
-                  ) : (
-                    <div className={`w-6 h-6 ${zoneColor.bg} border-2 border-white rounded-full shadow-md flex items-center justify-center ${isLastVisited ? 'animate-bounce' : ''}`}>
-                      <div className={`w-2 h-2 ${zoneColor.dot} rounded-full`}></div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Selected Checkpoint Popup Overlay */}
-        {selectedCheckpoint && (
-          <div className={`absolute left-4 top-16 z-40 max-w-[calc(100%-2rem)] sm:max-w-xs rounded-2xl border border-slate-200 bg-white/95 px-4 py-3 shadow-2xl backdrop-blur-md transition-all duration-300 ease-out ${isCheckpointPopupVisible && isPopupVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2'}`}>
-            <div className="flex items-start gap-2.5">
-              <Building size={18} className="mt-0.5 text-blue-600 shrink-0" />
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-                  {t('Bangunan / area', 'Building / area')}
-                </p>
-                <p className="font-extrabold text-slate-800 text-sm">
-                  {selectedCheckpoint.status_akses === 'dilarang'
-                    ? t('Bangunan dalam pemeliharaan atau berbahaya', 'Building under maintenance or dangerous')
-                    : progress.scannedCheckpoints.includes(selectedCheckpoint.id)
-                      ? (lang === 'id' ? selectedCheckpoint.nama_id : selectedCheckpoint.nama_en)
-                      : t('Informasi belum diketahui', 'Information unknown')}
-                </p>
-                <p className="text-xs text-slate-600 mt-0.5">
-                  {selectedCheckpoint.status_akses === 'dilarang'
-                    ? t('Area ini tidak dapat dikunjungi saat ini.', 'This area is currently not accessible.')
-                    : progress.scannedCheckpoints.includes(selectedCheckpoint.id)
-                      ? `${t('Zona', 'Zone')}: ${gameData.zones.find((zone: any) => zone.id === selectedCheckpoint.zona_id)?.[lang === 'id' ? 'nama_id' : 'nama_en'] || '-'}`
-                      : t('Kunjungi checkpoint ini terlebih dahulu untuk melihat informasi bangunan.', 'Visit this checkpoint first to reveal building information.')}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Floating Mobile/Touch Controls at Bottom Left (Reset Map + Zoom Controls) */}
-        <div className="absolute bottom-4 left-4 z-30 flex items-center gap-2">
-          {/* Reset Map Button (Round Compass Needle) */}
-          <button
-            onClick={handleResetZoom}
-            className="relative w-11 h-11 bg-slate-900/90 hover:bg-slate-800 active:scale-90 text-white rounded-full flex items-center justify-center border border-white/20 shadow-xl backdrop-blur-md transition-all group"
-            title={t('Reset Zoom / Peta', 'Reset Zoom / Map')}
+        <ScanLine size={24} />
+        {t('Scan QR Checkpoint', 'Scan Checkpoint QR')}
+      </button>
+      
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+        <p className="text-sm font-semibold mb-2">{t('Kamera bermasalah?', 'Camera issue?')}</p>
+        <div className="flex gap-2">
+          <input 
+            type="text" 
+            placeholder={t('Masukkan ID manual', 'Enter manual ID')}
+            value={manualCode}
+            onChange={e => setManualCode(e.target.value)}
+            className="flex-1 bg-slate-100 px-3 py-2 rounded-lg border border-slate-200 outline-none focus:border-blue-500"
+          />
+          <button 
+            onClick={() => {
+              if (manualCode) onScanManual(manualCode);
+              setManualCode('');
+            }}
+            className="px-4 py-2 bg-slate-200 text-slate-800 font-bold rounded-lg hover:bg-slate-300"
           >
-            <Compass size={22} className="text-amber-400 group-hover:rotate-45 transition-transform" />
-            <span className="absolute top-0.5 text-[8px] font-black text-amber-300">N</span>
-          </button>
-
-          {/* Zoom Controls Pill Adjacent to Reset Button */}
-          <div className="flex items-center bg-slate-900/90 backdrop-blur-md rounded-full border border-white/20 shadow-xl p-1">
-            <button
-              onClick={handleZoomIn}
-              className="p-2 hover:bg-white/20 active:bg-white/30 text-white rounded-full transition-all"
-              title={t('Perbesar', 'Zoom In')}
-            >
-              <Plus size={18} />
-            </button>
-            <div className="w-px h-4 bg-white/20 my-auto"></div>
-            <button
-              onClick={handleZoomOut}
-              className="p-2 hover:bg-white/20 active:bg-white/30 text-white rounded-full transition-all"
-              title={t('Perkecil', 'Zoom Out')}
-            >
-              <Minus size={18} />
-            </button>
-          </div>
-
-          {/* Zoom Level Badge (Direct Ref DOM manipulation for 60FPS zero React re-render overhead) */}
-          <div
-            ref={zoomBadgeRef}
-            className="bg-slate-900/90 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20 text-[11px] font-bold text-white shadow-md transition-opacity duration-300 opacity-0 pointer-events-none"
-          >
-            100%
-          </div>
-        </div>
-
-        {/* Floating Action Button (FAB) for Scanning QR at Bottom Right */}
-        <div className="absolute bottom-4 right-4 z-30">
-          <button
-            onClick={onScan}
-            className="w-14 h-14 bg-blue-600 hover:bg-blue-500 active:scale-90 text-white rounded-full shadow-2xl flex items-center justify-center border-2 border-white transition-all cursor-pointer"
-            title={t('Scan QR Checkpoint', 'Scan Checkpoint QR')}
-          >
-            <QrCode size={26} strokeWidth={2.2} />
+            {t('Kirim', 'Submit')}
           </button>
         </div>
       </div>
@@ -822,11 +458,10 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang, setLang }:
 }
 
 function ScannerView({ onSuccess, onCancel, t, lang }: any) {
-  const [manualCode, setManualCode] = useState('');
-
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
     
+    // Small timeout to allow DOM element to be ready
     setTimeout(() => {
       scanner = new Html5QrcodeScanner(
         "qr-reader",
@@ -842,7 +477,7 @@ function ScannerView({ onSuccess, onCancel, t, lang }: any) {
           onSuccess(text);
         },
         (error) => {
-          // quiet fail
+          // quiet fail on scan error
         }
       );
     }, 100);
@@ -856,51 +491,19 @@ function ScannerView({ onSuccess, onCancel, t, lang }: any) {
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-300">
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100 relative">
+      <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100 relative">
         <button 
           onClick={onCancel}
-          className="absolute top-4 right-4 z-10 p-2 bg-white/80 backdrop-blur rounded-full shadow-sm text-slate-600 hover:text-slate-900 active:scale-95"
+          className="absolute top-4 right-4 z-10 p-2 bg-white/80 backdrop-blur rounded-full shadow-sm text-slate-600 hover:text-slate-900"
         >
-          <X size={20} />
+          <X size={24} />
         </button>
         
         <div className="p-4 bg-slate-900 text-white text-center">
-          <h2 className="font-bold text-base">{t('Scan QR Checkpoint', 'Scan Checkpoint QR')}</h2>
-          <p className="text-xs text-slate-300 mt-0.5">{t('Arahkan kamera ke QR Code', 'Point camera at QR Code')}</p>
+          <h2 className="font-bold">{t('Arahkan kamera ke QR', 'Point camera at QR')}</h2>
         </div>
         
         <div id="qr-reader" className="w-full"></div>
-
-        {/* Integrated Manual Code Input Section */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-2">
-          <label className="block text-xs font-bold text-slate-700">
-            {t('Kamera bermasalah / Masukkan ID Manual:', 'Camera issue / Enter Manual ID:')}
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder={t('Masukkan ID (contoh: STP-Z1-01)', 'Enter ID (e.g. STP-Z1-01)')}
-              value={manualCode}
-              onChange={(e) => setManualCode(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && manualCode.trim()) {
-                  onSuccess(manualCode.trim());
-                }
-              }}
-              className="flex-1 bg-white px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-blue-500 shadow-sm"
-            />
-            <button
-              onClick={() => {
-                if (manualCode.trim()) {
-                  onSuccess(manualCode.trim());
-                }
-              }}
-              className="px-4 py-2.5 bg-blue-600 text-white font-bold text-sm rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shrink-0"
-            >
-              {t('Kirim', 'Submit')}
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -908,20 +511,20 @@ function ScannerView({ onSuccess, onCancel, t, lang }: any) {
 
 function TeaserView({ card, onContinue, t, lang }: any) {
   return (
-    <div className="flex min-h-[66vh] flex-col items-center justify-start pt-3 text-center space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className="w-full rounded-2xl border border-white/30 bg-white/15 px-6 py-5 shadow-xl backdrop-blur-md">
-        <h2 className="text-2xl font-black text-white">{t('Data Ditemukan!', 'Data Found!')}</h2>
-        <p className="text-slate-100 mt-1">{t('Mengekstrak informasi...', 'Extracting information...')}</p>
+    <div className="flex flex-col items-center justify-center min-h-[70vh] text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div>
+        <h2 className="text-2xl font-black text-slate-800">{t('Data Ditemukan!', 'Data Found!')}</h2>
+        <p className="text-slate-500 mt-1">{t('Mengekstrak informasi...', 'Extracting information...')}</p>
       </div>
 
-      <div className="w-[12.5rem] aspect-[3/4] rounded-[1.75rem] border-4 border-white/80 bg-slate-200 shadow-2xl shadow-slate-950/20 flex items-center justify-center overflow-hidden relative">
+      <div className="w-48 h-64 bg-slate-200 rounded-xl border-4 border-dashed border-slate-300 flex items-center justify-center shadow-inner relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-slate-300/50 to-transparent"></div>
-        <span className="text-slate-400 font-black text-4xl">?</span>
+        <span className="text-slate-400 font-bold text-4xl">?</span>
       </div>
 
       <button 
         onClick={onContinue}
-        className="w-full py-4 rounded-xl bg-blue-600 text-white font-bold text-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-all duration-300 hover:-translate-y-0.5"
+        className="w-full py-4 rounded-xl bg-blue-600 text-white font-bold text-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-all"
       >
         {t('Buka Kartu', 'Reveal Card')}
       </button>
@@ -930,46 +533,32 @@ function TeaserView({ card, onContinue, t, lang }: any) {
 }
 
 function RevealView({ card, checkpoint, onClose, t, lang }: any) {
-  const [isRevealing, setIsRevealing] = useState(false);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setIsRevealing(true), 80);
-    return () => window.clearTimeout(timer);
-  }, []);
-
   return (
-    <div className="flex min-h-[66vh] flex-col items-center justify-start pt-3 text-center space-y-5 animate-in zoom-in-90 duration-500">
-      <div className="w-full text-center rounded-2xl border border-white/30 bg-white/15 px-6 py-5 shadow-xl backdrop-blur-md">
+    <div className="flex flex-col items-center justify-center min-h-[70vh] text-center space-y-6 animate-in zoom-in-90 duration-500">
+      <div className="w-full text-center">
         <span className="inline-block px-3 py-1 bg-amber-100 text-amber-700 font-bold text-xs rounded-full uppercase tracking-wider mb-3">
           {card.tipe}
         </span>
-        <h2 className="text-3xl font-black text-white leading-tight">
+        <h2 className="text-3xl font-black text-slate-800 leading-tight">
           {lang === 'id' ? checkpoint?.nama_id : checkpoint?.nama_en}
         </h2>
       </div>
 
-      <div className="relative">
-        <div className={`absolute inset-0 rounded-[2rem] bg-gradient-to-br from-amber-300/70 via-yellow-100/50 to-sky-300/70 blur-xl transition-all duration-500 ${isRevealing ? 'opacity-100 scale-110' : 'opacity-0 scale-90'}`} />
-        <div className={`relative w-[13rem] aspect-[3/4] rounded-[1.75rem] shadow-2xl overflow-hidden border-4 border-white bg-slate-100 flex items-center justify-center p-4 transition-all duration-700 ${isRevealing ? 'scale-100 rotate-[720deg]' : 'scale-0 rotate-[-180deg]'}`}>
-          <div className="absolute inset-0 bg-gradient-to-br from-white/80 to-slate-200/40" />
-          <div className="absolute top-3 right-3 h-8 w-8 rounded-full border-2 border-amber-400/40 bg-white/90 animate-spin" />
-          <div className={`transition-all duration-500 ${isRevealing ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}>
-            {card.ikon_url ? (
-              <img src={card.ikon_url} alt="Card" className="h-full w-full object-contain" />
-            ) : (
-              <div className="text-slate-400 font-medium">[{t('Gambar', 'Image')}]</div>
-            )}
-          </div>
-        </div>
+      <div className="w-56 h-72 rounded-2xl shadow-2xl overflow-hidden border-4 border-white bg-slate-100 flex items-center justify-center">
+        {card.ikon_url ? (
+          <img src={card.ikon_url} alt="Card" className="w-full h-full object-cover" />
+        ) : (
+          <div className="text-slate-400 font-medium">[{t('Gambar', 'Image')}]</div>
+        )}
       </div>
 
-      <p className="w-full text-slate-600 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+      <p className="text-slate-600 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
         {lang === 'id' ? checkpoint?.reveal_id : checkpoint?.reveal_en}
       </p>
 
       <button 
         onClick={onClose}
-        className="w-full py-4 rounded-xl bg-slate-900 text-white font-bold text-lg shadow-xl hover:bg-slate-800 active:scale-95 transition-all duration-300 hover:-translate-y-0.5 flex items-center justify-center gap-2"
+        className="w-full py-4 rounded-xl bg-slate-900 text-white font-bold text-lg shadow-xl hover:bg-slate-800 active:scale-95 transition-all flex items-center justify-center gap-2"
       >
         {t('Simpan ke Inventory', 'Save to Inventory')}
         <ArrowRight size={20} />
@@ -978,149 +567,59 @@ function RevealView({ card, checkpoint, onClose, t, lang }: any) {
   );
 }
 
-function InventoryView({ gameData, progress, onBackToMap, t, lang }: any) {
-  const [selectedCard, setSelectedCard] = useState<any | null>(null);
-  const [isCardModalVisible, setIsCardModalVisible] = useState(false);
+function InventoryView({ gameData, progress, t, lang }: any) {
   const types = Array.from(new Set(gameData.cards.map((c: any) => c.tipe)));
 
-  const selectedCheckpoint = selectedCard
-    ? gameData.checkpoints.find((cp: any) => cp.id === selectedCard.checkpoint_id)
-    : null;
-
-  useEffect(() => {
-    if (!selectedCard) {
-      setIsCardModalVisible(false);
-      return;
-    }
-
-    const timer = window.setTimeout(() => setIsCardModalVisible(true), 20);
-    return () => window.clearTimeout(timer);
-  }, [selectedCard]);
-
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      {/* Header Koleksi Kartu dengan Glassmorphism */}
-      <div className="text-center rounded-2xl border border-white/30 bg-white/15 px-6 py-5 shadow-xl backdrop-blur-md">
-        <h2 className="text-2xl font-black text-white">{t('Koleksi Kartu', 'Card Collection')}</h2>
-        <p className="text-slate-100 text-sm mt-1">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div className="text-center">
+        <h2 className="text-2xl font-black text-slate-800">{t('Koleksi Kartu', 'Card Collection')}</h2>
+        <p className="text-slate-500 mt-1">
           {progress.collectedCards.length} / {gameData.cards.length} {t('Terkumpul', 'Collected')}
         </p>
       </div>
 
-      {/* Terpisah Per-section (Skill, Bonus, Riset, dll) */}
       {types.map((type: any) => (
-        <div 
-          key={type} 
-          className="rounded-2xl border border-white/30 bg-slate-950/35 p-4 shadow-xl backdrop-blur-xl space-y-3"
-        >
-          {/* Judul Section (Warna Putih + Capitalize) */}
-          <h3 className="font-bold text-white capitalize text-base tracking-wide border-b border-white/10 pb-2">
-            {type}
-          </h3>
-
+        <div key={type} className="space-y-3">
+          <h3 className="font-bold text-slate-800 px-1">{type}</h3>
           <div className="grid grid-cols-3 gap-3">
             {gameData.cards.filter((c: any) => c.tipe === type).map((card: any) => {
               const isCollected = progress.collectedCards.includes(card.id);
               const checkpoint = gameData.checkpoints.find((cp: any) => cp.id === card.checkpoint_id);
               return (
-                <button
-                  key={card.id}
-                  type="button"
-                  onClick={() => setSelectedCard(card)}
-                  className={`aspect-[3/4] rounded-xl flex flex-col p-2 text-center transition-all duration-300 ${
+                <div 
+                  key={card.id} 
+                  className={`aspect-[3/4] rounded-lg flex flex-col items-center justify-center p-2 text-center transition-all ${
                     isCollected 
-                      ? 'bg-white/90 shadow-md border border-white text-slate-900 hover:scale-[1.03] hover:-translate-y-1 animate-pulse' 
-                      : 'bg-white/10 border border-dashed border-white/30 text-white/50 backdrop-blur-sm items-center justify-center hover:bg-white/15 hover:scale-[1.02] hover:-translate-y-0.5'
+                      ? 'bg-white shadow-md border-2 border-white' 
+                      : 'bg-slate-100 border-2 border-dashed border-slate-300 opacity-60'
                   }`}
                 >
                   {isCollected ? (
                     <>
-                      <div className="flex-1 min-h-0 flex items-center justify-center">
-                        {card.ikon_url ? (
-                          <img src={card.ikon_url} alt="" className="max-w-full max-h-full object-contain" />
-                        ) : (
-                          <div className="w-12 h-12 bg-blue-500/20 text-blue-600 rounded-full flex items-center justify-center font-bold text-xs">
-                            ✓
-                          </div>
-                        )}
-                      </div>
-                      <span className="text-[10px] font-bold leading-tight text-slate-800 mt-1.5 shrink-0">
+                      {card.ikon_url ? (
+                        <img src={card.ikon_url} alt="" className="w-8 h-8 object-contain mb-2" />
+                      ) : (
+                        <div className="w-8 h-8 bg-blue-100 rounded-full mb-2"></div>
+                      )}
+                      <span className="text-[10px] font-bold text-slate-800 leading-tight">
                         {lang === 'id' ? checkpoint?.nama_id : checkpoint?.nama_en}
                       </span>
                     </>
                   ) : (
-                    <span className="font-bold text-2xl text-white/40">?</span>
+                    <span className="text-slate-400 font-bold text-xl">?</span>
                   )}
-                </button>
+                </div>
               );
             })}
           </div>
         </div>
       ))}
-
-      <button
-        onClick={onBackToMap}
-        className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-slate-900 text-white font-bold text-lg shadow-xl shadow-slate-900/20 active:scale-95 transition-all duration-300 hover:-translate-y-0.5"
-      >
-        <Map size={20} />
-        {t('Kembali ke Peta Kawasan', 'Back to Area Map')}
-      </button>
-
-      {selectedCard && (
-        <div
-          className={`fixed inset-0 z-50 flex items-start justify-center bg-slate-950/70 p-3 pt-4 sm:p-4 sm:pt-6 transition-all duration-300 ${isCardModalVisible ? 'opacity-100' : 'opacity-0'}`}
-          onClick={() => {
-            setIsCardModalVisible(false);
-            window.setTimeout(() => setSelectedCard(null), 180);
-          }}
-        >
-          <div
-            className={`w-full max-w-[20rem] rounded-[1.75rem] bg-white p-4 shadow-2xl transition-all duration-300 ${isCardModalVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2'}`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                  {selectedCard.tipe}
-                </p>
-                <h3 className="mt-1 text-xl font-black text-slate-900">
-                  {lang === 'id' ? selectedCheckpoint?.nama_id : selectedCheckpoint?.nama_en}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsCardModalVisible(false);
-                  window.setTimeout(() => setSelectedCard(null), 180);
-                }}
-                className="rounded-full bg-slate-100 p-2 text-slate-600"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="mt-4 aspect-[3/4] rounded-[1.5rem] bg-slate-100 p-3 flex items-center justify-center overflow-hidden relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-slate-200/70 via-white/20 to-blue-100/70 blur-xl opacity-80" />
-              {selectedCard.ikon_url ? (
-                <img src={selectedCard.ikon_url} alt="Card" className="relative h-full w-full object-contain rounded-2xl transition-transform duration-500 hover:scale-[1.04]" />
-              ) : (
-                <div className="relative text-slate-400 font-medium">[{t('Gambar', 'Image')}]</div>
-              )}
-            </div>
-
-            <p className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 leading-6 transition-all duration-300 hover:bg-slate-100">
-              {progress.collectedCards.includes(selectedCard.id)
-                ? (lang === 'id' ? selectedCheckpoint?.reveal_id : selectedCheckpoint?.reveal_en)
-                : t('Kartu ini belum terkumpul', 'This card has not been collected yet')}
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-function BlueprintView({ gameData, progress, onBackToMap, t, lang }: any) {
+function BlueprintView({ gameData, progress, t, lang }: any) {
   const idea = gameData.ideas.find((i: any) => i.id === progress.ideaId);
   
   let baseScore = progress.collectedCards.length;
@@ -1172,8 +671,8 @@ function BlueprintView({ gameData, progress, onBackToMap, t, lang }: any) {
               if (!card) return null;
               const checkpoint = gameData.checkpoints.find((cp: any) => cp.id === card.checkpoint_id);
               return (
-                <div key={card.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
-                  <div className="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center text-xs font-bold text-blue-600 animate-pulse">
+                <div key={card.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                  <div className="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center text-xs font-bold text-blue-600">
                     {card.tipe.substring(0, 2).toUpperCase()}
                   </div>
                   <div>
@@ -1188,11 +687,9 @@ function BlueprintView({ gameData, progress, onBackToMap, t, lang }: any) {
       </div>
       
       <button 
-        onClick={onBackToMap}
-        className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-slate-900 text-white font-bold text-lg shadow-xl shadow-slate-900/20 active:scale-95 transition-all duration-300 hover:-translate-y-0.5"
+        className="w-full py-4 rounded-xl bg-slate-200 text-slate-400 font-bold text-lg cursor-not-allowed"
       >
-        <Map size={20} />
-        {t('Kembali ke Peta Kawasan', 'Back to Area Map')}
+        {t('Selesai & Bagikan', 'Finish & Share')} (Coming Soon)
       </button>
     </div>
   );
