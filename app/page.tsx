@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { GameData, fetchGameData, getTargetCheckpointsForIdea } from '../lib/data';
+import { GameData, fetchGameData, getTargetCheckpointsForIdea, getIdeaDescription } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { 
@@ -392,11 +392,11 @@ function HowToPlayModal({ onClose, t, lang }: any) {
         <div className="space-y-3.5 text-left">
           {/* Step 1 */}
           <div className="flex gap-3.5 p-3.5 bg-blue-50/80 border border-blue-100 rounded-2xl">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 text-white font-black flex items-center justify-center text-sm shrink-0 shadow-sm">
-              1
+            <div className="w-9 h-9 rounded-xl bg-blue-600 text-white font-black flex items-center justify-center shrink-0 shadow-sm">
+              <Target size={18} />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-sm">{t('Pilih Blueprint Target', 'Select Target Blueprint')}</h3>
+              <h3 className="font-bold text-slate-900 text-sm">{t('1. Pilih Blueprint Target', '1. Select Target Blueprint')}</h3>
               <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                 {t('Pilih salah satu ide inovasi produk yang ingin kamu rancang. Setiap blueprint membutuhkan checkpoint gedung khusus di kawasan.', 'Choose an innovation idea at the start. Each blueprint requires specific building checkpoints across the park.')}
               </p>
@@ -404,25 +404,25 @@ function HowToPlayModal({ onClose, t, lang }: any) {
           </div>
 
           {/* Step 2 */}
-          <div className="flex gap-3.5 p-3.5 bg-amber-50/80 border border-amber-100 rounded-2xl">
-            <div className="w-9 h-9 rounded-xl bg-amber-500 text-white font-black flex items-center justify-center text-sm shrink-0 shadow-sm">
-              2
+          <div className="flex gap-3.5 p-3.5 bg-blue-50/50 border border-blue-100/80 rounded-2xl">
+            <div className="w-9 h-9 rounded-xl bg-blue-700 text-white font-black flex items-center justify-center shrink-0 shadow-sm">
+              <QrCode size={18} />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-sm">{t('Jelajah & Scan QR Code', 'Explore & Scan QR Code')}</h3>
+              <h3 className="font-bold text-slate-900 text-sm">{t('2. Jelajah & Scan QR Code', '2. Explore & Scan QR Code')}</h3>
               <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                {t('Perhatikan pin target (🎯) pada peta interaktif. Kunjungi gedung di Solo Technopark dan scan QR code di lokasi untuk mengklaim kartu.', 'Look for target pins (🎯) on the interactive map. Visit real buildings at Solo Technopark and scan QR codes to claim cards.')}
+                {t('Perhatikan pin target pada peta interaktif. Kunjungi gedung di Solo Technopark dan scan QR code di lokasi untuk mengklaim kartu.', 'Look for target pins on the interactive map. Visit real buildings at Solo Technopark and scan QR codes to claim cards.')}
               </p>
             </div>
           </div>
 
           {/* Step 3 */}
-          <div className="flex gap-3.5 p-3.5 bg-emerald-50/80 border border-emerald-100 rounded-2xl">
-            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white font-black flex items-center justify-center text-sm shrink-0 shadow-sm">
-              3
+          <div className="flex gap-3.5 p-3.5 bg-slate-100/80 border border-slate-200 rounded-2xl">
+            <div className="w-9 h-9 rounded-xl bg-slate-900 text-white font-black flex items-center justify-center shrink-0 shadow-sm">
+              <Award size={18} />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-sm">{t('Kumpulkan & Rakit Inovasi', 'Collect & Assemble Innovation')}</h3>
+              <h3 className="font-bold text-slate-900 text-sm">{t('3. Kumpulkan & Rakit Inovasi', '3. Collect & Assemble Innovation')}</h3>
               <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                 {t('Setiap checkpoint memberikan Kartu Skill/Riset. Kumpulkan semua target untuk melengkapi blueprint dan tingkatkan skor inovasimu!', 'Each checkpoint grants a Skill/Research card. Collect all targets to complete your blueprint and maximize your score!')}
               </p>
@@ -444,6 +444,7 @@ function HowToPlayModal({ onClose, t, lang }: any) {
 function LandingView({ lang, setLang, gameData, isLoading, error, onStart, onOpenHowToPlay, t }: any) {
   const ideas = gameData?.ideas || [];
   const [selectedIdea, setSelectedIdea] = useState<string | null>(null);
+  const [showRoutesForIdea, setShowRoutesForIdea] = useState<string | null>(null);
 
   useEffect(() => {
     if (ideas.length > 0 && !selectedIdea) {
@@ -453,33 +454,23 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, onOpe
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[85vh] text-center space-y-5 pb-6">
-      {/* App Main Banner */}
-      <div className="w-full rounded-3xl border border-white/30 bg-white/15 px-6 py-6 shadow-2xl backdrop-blur-md relative overflow-hidden">
-        <div className="absolute top-0 right-0 -mt-6 -mr-6 w-24 h-24 bg-blue-400/20 rounded-full blur-xl pointer-events-none"></div>
-        <h1 className="text-3xl font-black text-white tracking-tight mb-1">
+      {/* App Main Banner - Centered Title & Description */}
+      <div className="w-full rounded-3xl border border-slate-700/60 bg-slate-900/80 px-6 py-7 shadow-2xl backdrop-blur-md relative overflow-hidden text-center flex flex-col items-center justify-center">
+        <h1 className="text-3xl font-black text-white tracking-tight mb-2 text-center">
           Jelajah Solo Technopark
         </h1>
-        <p className="text-slate-200 text-xs font-medium max-w-xs mx-auto">
+        <p className="text-blue-100 text-sm leading-relaxed font-medium max-w-sm mx-auto text-center">
           {t(
-            'Jelajah kawasan, temukan checkpoint, dan wujudkan ide inovasimu!',
-            'Explore the park, discover checkpoints, and build your innovation idea!'
+            'Jelajahi kawasan, temukan checkpoint di setiap gedung, dan kumpulkan kartu untuk merakit ide produk inovatifmu.',
+            'Explore the park, discover checkpoints across buildings, and collect cards to build your innovative product idea.'
           )}
         </p>
-
-        {/* 3-Step Gamification Flow Loop Pill */}
-        <div className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900/60 border border-white/20 text-[11px] font-bold text-amber-300 shadow-inner">
-          <span>🏛️ {t('Jelajah Gedung', 'Explore')}</span>
-          <ChevronRight size={12} className="text-white/60" />
-          <span>📱 {t('Scan QR', 'Scan QR')}</span>
-          <ChevronRight size={12} className="text-white/60" />
-          <span>⚡ {t('Rakit Inovasi', 'Build Innovation')}</span>
-        </div>
       </div>
 
       {/* Control Bar: Language Switcher & How to Play Button */}
       <div className="w-full flex items-center justify-between gap-3">
         {/* Language Switcher */}
-        <div className="flex bg-slate-900/60 p-1 rounded-2xl border border-white/20 shadow-md">
+        <div className="flex bg-slate-900/80 p-1 rounded-2xl border border-slate-700 shadow-md">
           <button 
             type="button"
             onClick={() => setLang('id')} 
@@ -496,11 +487,11 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, onOpe
           </button>
         </div>
 
-        {/* How to Play Button */}
+        {/* How to Play Button (Solid Blue Theme) */}
         <button
           type="button"
           onClick={onOpenHowToPlay}
-          className="flex items-center gap-1.5 px-4 py-2 bg-amber-500/90 hover:bg-amber-400 active:scale-95 text-slate-950 font-extrabold text-xs rounded-2xl border border-amber-300/50 shadow-lg transition-all cursor-pointer"
+          className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-extrabold text-xs rounded-2xl border border-blue-400/40 shadow-lg transition-all cursor-pointer"
         >
           <HelpCircle size={15} strokeWidth={2.5} />
           <span>{t('Cara Bermain', 'How to Play')}</span>
@@ -508,14 +499,14 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, onOpe
       </div>
 
       {/* Product Blueprint Selector Card */}
-      <div className="w-full rounded-3xl border border-white/25 bg-slate-950/45 p-5 text-left shadow-2xl backdrop-blur-xl space-y-4">
+      <div className="w-full rounded-3xl border border-slate-800 bg-slate-950/80 p-5 text-left shadow-2xl backdrop-blur-xl space-y-4">
         <div>
           <div className="flex items-center justify-between">
             <h2 className="font-extrabold text-lg text-white flex items-center gap-2">
-              <Target size={18} className="text-amber-400" />
+              <Target size={18} className="text-blue-400" />
               <span>{t('Pilih Blueprint Target:', 'Choose Target Blueprint:')}</span>
             </h2>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded-md border border-amber-400/30">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-300 bg-blue-600/30 px-2.5 py-0.5 rounded-full border border-blue-400/30">
               {ideas.length} {t('Opsi', 'Options')}
             </span>
           </div>
@@ -535,43 +526,65 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, onOpe
           <div className="grid gap-2.5">
             {ideas.map((idea: any) => {
               const isSelected = selectedIdea === idea.id;
+              const isShowingRoute = showRoutesForIdea === idea.id;
               const reqCheckpoints = getTargetCheckpointsForIdea(idea.id, gameData);
+              const ideaDescription = getIdeaDescription(idea, lang);
+
               return (
                 <div 
                   key={idea.id} 
                   onClick={() => setSelectedIdea(idea.id)}
                   className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 ${
                     isSelected 
-                      ? 'border-amber-400 bg-gradient-to-r from-blue-700/90 to-blue-900/90 text-white shadow-xl ring-2 ring-amber-400/50 translate-x-1' 
-                      : 'border-white/15 bg-white/10 text-white hover:bg-white/20 hover:border-white/30'
+                      ? 'border-blue-500 bg-slate-900 text-white shadow-xl ring-2 ring-blue-500/40 translate-x-1' 
+                      : 'border-slate-800 bg-slate-900/40 text-slate-200 hover:bg-slate-900/80 hover:border-slate-700'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-extrabold text-base leading-tight">
-                      {lang === 'id' ? idea.nama_id : idea.nama_en}
+                    <h3 className="font-extrabold text-base leading-tight flex items-center gap-2">
+                      <Target size={16} className={isSelected ? 'text-blue-400' : 'text-slate-500'} />
+                      <span>{lang === 'id' ? idea.nama_id : idea.nama_en}</span>
                     </h3>
-                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${isSelected ? 'border-amber-400 bg-amber-400 text-slate-900 font-bold text-xs' : 'border-white/40'}`}>
-                      {isSelected ? '✓' : ''}
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${isSelected ? 'border-blue-400 bg-blue-600 text-white font-bold text-xs' : 'border-slate-600'}`}>
+                      {isSelected ? <Check size={12} strokeWidth={3} /> : null}
                     </div>
                   </div>
 
-                  {/* Expanded Description & Target Checkpoints Info */}
+                  {/* Clean Sentence Description ONLY (No crowded target pills by default) */}
                   {isSelected && (
-                    <div className="mt-3 pt-3 border-t border-white/20 text-xs space-y-2 animate-in fade-in duration-200">
-                      <p className="text-blue-100 font-medium leading-relaxed">
-                        {lang === 'id' ? (idea.deskripsi_id || idea.nama_id) : (idea.deskripsi_en || idea.nama_en)}
+                    <div className="mt-3 pt-3 border-t border-slate-800 text-xs space-y-2.5 animate-in fade-in duration-200">
+                      <p className="text-slate-200 font-medium leading-relaxed bg-slate-950 p-3 rounded-xl border border-slate-800">
+                        {ideaDescription}
                       </p>
                       
-                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-300">
-                          🎯 {t('Target', 'Target')}:
-                        </span>
-                        {reqCheckpoints.map((cp: any) => (
-                          <span key={cp.id} className="px-2 py-0.5 rounded-full bg-slate-900/70 text-[10px] text-white border border-white/20 font-bold">
-                            {lang === 'id' ? cp.nama_id : cp.nama_en}
+                      {/* Optional Route Preview Toggle (Hidden by default to avoid cluttering) */}
+                      <div className="flex items-center justify-between pt-1">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowRoutesForIdea(isShowingRoute ? null : idea.id);
+                          }}
+                          className="text-[11px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer"
+                        >
+                          <Building size={12} />
+                          <span>
+                            {isShowingRoute 
+                              ? t('Sembunyikan Gedung Target', 'Hide Target Buildings')
+                              : t('Pratinjau Gedung Target', 'Preview Target Buildings')}
                           </span>
-                        ))}
+                        </button>
                       </div>
+
+                      {isShowingRoute && (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1 animate-in fade-in duration-150">
+                          {reqCheckpoints.map((cp: any) => (
+                            <span key={cp.id} className="px-2 py-0.5 rounded-full bg-slate-950 text-[10px] text-slate-300 border border-slate-800 font-semibold">
+                              {lang === 'id' ? cp.nama_id : cp.nama_en}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -585,11 +598,11 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, onOpe
         )}
       </div>
 
-      {/* Start Playing Button */}
+      {/* Start Playing Button (Solid Blue) */}
       <button 
         onClick={() => selectedIdea && onStart(selectedIdea)}
         disabled={isLoading || !selectedIdea}
-        className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 text-slate-950 font-black text-lg shadow-2xl hover:brightness-110 active:scale-95 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group cursor-pointer"
+        className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-lg shadow-2xl active:scale-95 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group cursor-pointer border border-blue-400/30"
       >
         <span>{isLoading ? t('Memuat...', 'Loading...') : t('Mulai Petualangan', 'Start Adventure')}</span>
         <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />
@@ -823,7 +836,7 @@ function MapView({ gameData, progress, onScan, onScanManual, onOpenHowToPlay, t,
             <button 
               type="button"
               onClick={onOpenHowToPlay} 
-              className="bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 px-3 py-1.5 rounded-2xl font-black text-xs shadow-xl border border-amber-300 flex items-center gap-1 cursor-pointer"
+              className="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-3 py-1.5 rounded-2xl font-black text-xs shadow-xl border border-blue-400/40 flex items-center gap-1 cursor-pointer"
             >
               <HelpCircle size={14} strokeWidth={2.5} />
               <span>{t('Petunjuk', 'Guide')}</span>
@@ -853,16 +866,16 @@ function MapView({ gameData, progress, onScan, onScanManual, onOpenHowToPlay, t,
           </div>
         </div>
 
-        {/* Active Blueprint Target Banner */}
+        {/* Active Blueprint Target Banner (Blue Theme) */}
         {activeIdea && (
-          <div className="pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-amber-400/50 px-3.5 py-2 rounded-2xl shadow-2xl flex items-center justify-between text-white animate-in slide-in-from-top-2 duration-300">
+          <div className="pointer-events-auto bg-slate-900/95 backdrop-blur-md border border-blue-500/40 px-3.5 py-2 rounded-2xl shadow-2xl flex items-center justify-between text-white animate-in slide-in-from-top-2 duration-300">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-7 h-7 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center shrink-0">
-                <Target size={16} className="text-amber-400" />
+              <div className="w-7 h-7 rounded-xl bg-blue-600/20 border border-blue-400/40 flex items-center justify-center shrink-0">
+                <Target size={16} className="text-blue-400" />
               </div>
               <div className="min-w-0">
-                <div className="text-[10px] font-black uppercase tracking-wider text-amber-300 truncate">
-                  🎯 {t('Blueprint', 'Blueprint')}: {lang === 'id' ? activeIdea.nama_id : activeIdea.nama_en}
+                <div className="text-[10px] font-black uppercase tracking-wider text-blue-300 truncate flex items-center gap-1">
+                  <span>{t('Blueprint Target', 'Target Blueprint')}: {lang === 'id' ? activeIdea.nama_id : activeIdea.nama_en}</span>
                 </div>
                 <div className="text-xs font-bold text-slate-200">
                   {scannedTargetCount} / {targetCheckpoints.length} {t('Checkpoint Target Selesai', 'Target Checkpoints Done')}
@@ -871,7 +884,7 @@ function MapView({ gameData, progress, onScan, onScanManual, onOpenHowToPlay, t,
             </div>
 
             <div className="shrink-0 pl-2">
-              <div className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-400 text-slate-950">
+              <div className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-blue-600 text-white">
                 {Math.round((scannedTargetCount / (targetCheckpoints.length || 1)) * 100)}%
               </div>
             </div>
@@ -950,12 +963,12 @@ function MapView({ gameData, progress, onScan, onScanManual, onOpenHowToPlay, t,
                     isRestricted ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-125 active:scale-110'
                   }`}
                   style={{ left: `${posX}%`, top: `${posY}%` }}
-                  title={isRestricted ? `${pinLabel} — ${restrictedLabel}` : isTarget ? `🎯 TARGET BLUEPRINT: ${pinLabel}` : pinLabel}
+                  title={isRestricted ? `${pinLabel} — ${restrictedLabel}` : isTarget ? `TARGET BLUEPRINT: ${pinLabel}` : pinLabel}
                 >
-                  {/* Target Badge Icon */}
+                  {/* Target Badge Icon (Lucide Target Icon) */}
                   {isTarget && !isScanned && (
-                    <div className="absolute -top-3 -right-3 z-20 bg-amber-400 text-slate-950 font-black text-[10px] w-5 h-5 rounded-full flex items-center justify-center shadow-lg animate-bounce border border-amber-200">
-                      🎯
+                    <div className="absolute -top-2.5 -right-2.5 z-20 bg-blue-600 text-white font-black w-5 h-5 rounded-full flex items-center justify-center shadow-lg border border-white">
+                      <Target size={11} />
                     </div>
                   )}
 
@@ -964,11 +977,11 @@ function MapView({ gameData, progress, onScan, onScanManual, onOpenHowToPlay, t,
                       <Lock size={11} className="text-red-300" strokeWidth={2.5} />
                     </div>
                   ) : isScanned ? (
-                    <div className={`w-7 h-7 ${isTarget ? 'bg-emerald-500 ring-4 ring-amber-400 shadow-amber-500/50' : 'bg-emerald-500'} border-2 border-white text-white rounded-full flex items-center justify-center shadow-lg ${isLastVisited ? 'animate-bounce' : ''}`}>
+                    <div className={`w-7 h-7 ${isTarget ? 'bg-emerald-500 ring-4 ring-blue-500 shadow-blue-500/50' : 'bg-emerald-500'} border-2 border-white text-white rounded-full flex items-center justify-center shadow-lg ${isLastVisited ? 'animate-bounce' : ''}`}>
                       <Check size={16} strokeWidth={3} />
                     </div>
                   ) : (
-                    <div className={`w-6 h-6 ${zoneColor.bg} border-2 border-white rounded-full shadow-md flex items-center justify-center ${isTarget ? 'ring-4 ring-amber-400 ring-offset-2 ring-offset-slate-900 animate-pulse shadow-xl shadow-amber-400/60 scale-110' : ''} ${isLastVisited ? 'animate-bounce' : ''}`}>
+                    <div className={`w-6 h-6 ${zoneColor.bg} border-2 border-white rounded-full shadow-md flex items-center justify-center ${isTarget ? 'ring-4 ring-blue-500 ring-offset-2 ring-offset-slate-900 animate-pulse shadow-xl shadow-blue-500/60 scale-110' : ''} ${isLastVisited ? 'animate-bounce' : ''}`}>
                       <div className={`w-2 h-2 ${zoneColor.dot} rounded-full`}></div>
                     </div>
                   )}
@@ -985,8 +998,9 @@ function MapView({ gameData, progress, onScan, onScanManual, onOpenHowToPlay, t,
               <Building size={18} className="mt-0.5 text-blue-600 shrink-0" />
               <div>
                 {targetCheckpointIds.includes(selectedCheckpoint.id) && (
-                  <span className="inline-block px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-black rounded-md mb-1 border border-amber-300 uppercase tracking-wider">
-                    🎯 {t('Target Blueprint Kamu!', 'Your Blueprint Target!')}
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-800 text-[10px] font-black rounded-md mb-1 border border-blue-200 uppercase tracking-wider">
+                    <Target size={11} className="text-blue-600" />
+                    <span>{t('Target Blueprint Kamu!', 'Your Blueprint Target!')}</span>
                   </span>
                 )}
                 <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
@@ -1372,6 +1386,7 @@ function BlueprintView({ gameData, progress, onBackToMap, onSelectIdea, onOpenHo
   const targetCheckpoints = getTargetCheckpointsForIdea(progress.ideaId, gameData);
   const scannedTargetCount = targetCheckpoints.filter((cp: any) => progress.scannedCheckpoints.includes(cp.id)).length;
   const progressPercent = Math.round((scannedTargetCount / (targetCheckpoints.length || 1)) * 100);
+  const ideaDescription = getIdeaDescription(idea, lang);
 
   let baseScore = progress.collectedCards.length;
   let tagMatches = 0;
@@ -1392,19 +1407,18 @@ function BlueprintView({ gameData, progress, onBackToMap, onSelectIdea, onOpenHo
   
   return (
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300 pb-6">
-      {/* Main Blueprint Card */}
-      <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 p-6 rounded-3xl text-white shadow-2xl relative overflow-hidden border border-white/20">
-        <div className="absolute top-0 right-0 w-36 h-36 bg-blue-500/20 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+      {/* Main Blueprint Info Header Card - Solid Dark Slate & Solid Blue */}
+      <div className="bg-slate-900 p-6 rounded-3xl text-white shadow-2xl relative overflow-hidden border border-slate-800">
         
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <span className="inline-flex items-center gap-1 text-amber-300 font-extrabold text-xs uppercase tracking-wider bg-amber-400/20 px-3 py-1 rounded-full border border-amber-400/30">
-            <Target size={14} />
-            {t('Blueprint Inovasi Target', 'Target Innovation Blueprint')}
+        <div className="flex items-center justify-between gap-2 mb-3">
+          {/* Plain Text Header - NO icon, NO container box */}
+          <span className="text-xs font-extrabold uppercase tracking-wider text-blue-400">
+            {t('BLUEPRINT INOVASI TARGET', 'TARGET INNOVATION BLUEPRINT')}
           </span>
 
           <button
             onClick={() => setIsChangingIdea(!isChangingIdea)}
-            className="text-xs text-blue-200 hover:text-white underline font-semibold flex items-center gap-1 cursor-pointer"
+            className="text-xs text-blue-300 hover:text-white underline font-semibold flex items-center gap-1 cursor-pointer"
           >
             <RefreshCw size={13} />
             <span>{t('Ganti Blueprint', 'Change Blueprint')}</span>
@@ -1415,41 +1429,42 @@ function BlueprintView({ gameData, progress, onBackToMap, onSelectIdea, onOpenHo
           {lang === 'id' ? idea?.nama_id : idea?.nama_en}
         </h3>
 
-        <p className="text-xs text-slate-200 leading-relaxed mb-4 bg-white/10 p-3 rounded-2xl border border-white/10">
-          {lang === 'id' ? (idea?.deskripsi_id || idea?.nama_id) : (idea?.deskripsi_en || idea?.nama_en)}
+        {/* Distinct 1-2 sentence description text (Never repeats title) */}
+        <p className="text-xs text-slate-300 leading-relaxed mb-4 bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+          {ideaDescription}
         </p>
 
-        {/* Blueprint Target Completion Bar */}
+        {/* Blueprint Target Completion Bar (Solid Blue) */}
         <div className="space-y-1.5 mb-4">
           <div className="flex justify-between text-xs font-bold">
             <span className="text-slate-300">{t('Kemajuan Target Blueprint', 'Blueprint Target Progress')}</span>
-            <span className="text-amber-400 font-extrabold">{scannedTargetCount} / {targetCheckpoints.length} Checkpoint ({progressPercent}%)</span>
+            <span className="text-blue-400 font-extrabold">{scannedTargetCount} / {targetCheckpoints.length} Checkpoint ({progressPercent}%)</span>
           </div>
-          <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-white/20 p-0.5">
+          <div className="w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-800 p-0.5">
             <div 
-              className="h-full bg-gradient-to-r from-amber-400 to-yellow-400 rounded-full transition-all duration-500 shadow-lg shadow-amber-400/50"
+              className="h-full bg-blue-500 rounded-full transition-all duration-500 shadow-md shadow-blue-500/30"
               style={{ width: `${progressPercent}%` }}
             ></div>
           </div>
         </div>
         
-        <div className="grid grid-cols-2 gap-3 pt-2">
-          <div className="bg-white/10 backdrop-blur-sm p-3.5 rounded-2xl border border-white/15">
-            <div className="text-xs text-slate-300 font-medium mb-0.5">{t('Total Skor Inovasi', 'Total Score')}</div>
-            <div className="text-3xl font-black text-amber-400">{totalScore}</div>
+        <div className="grid grid-cols-2 gap-3 pt-1">
+          <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+            <div className="text-xs text-slate-400 font-medium mb-0.5">{t('Total Skor Inovasi', 'Total Score')}</div>
+            <div className="text-3xl font-black text-blue-400">{totalScore}</div>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm p-3.5 rounded-2xl border border-white/15">
-            <div className="text-xs text-slate-300 font-medium mb-0.5">{t('Bonus Kecocokan', 'Match Bonus')}</div>
+          <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+            <div className="text-xs text-slate-400 font-medium mb-0.5">{t('Bonus Kecocokan', 'Match Bonus')}</div>
             <div className="text-3xl font-black text-emerald-400">+{tagMatches}</div>
           </div>
         </div>
       </div>
 
-      {/* Switch Blueprint Drawer / Section */}
+      {/* Switch Blueprint Selection Drawer */}
       {isChangingIdea && (
-        <div className="bg-slate-900 text-white p-5 rounded-3xl border border-amber-400/40 shadow-2xl space-y-3 animate-in fade-in duration-200">
+        <div className="bg-slate-900 text-white p-5 rounded-3xl border border-slate-800 shadow-2xl space-y-3 animate-in fade-in duration-200">
           <div className="flex items-center justify-between">
-            <h4 className="font-extrabold text-sm text-amber-300">{t('Pilih Blueprint Baru:', 'Select New Blueprint:')}</h4>
+            <h4 className="font-extrabold text-sm text-blue-400">{t('Pilih Blueprint Baru:', 'Select New Blueprint:')}</h4>
             <button onClick={() => setIsChangingIdea(false)} className="text-slate-400 hover:text-white text-xs font-bold">
               <X size={16} />
             </button>
@@ -1462,15 +1477,18 @@ function BlueprintView({ gameData, progress, onBackToMap, onSelectIdea, onOpenHo
                   onSelectIdea(item.id);
                   setIsChangingIdea(false);
                 }}
-                className={`p-3 rounded-2xl border text-left transition-all ${
+                className={`p-3.5 rounded-2xl border text-left transition-all ${
                   item.id === progress.ideaId
-                    ? 'border-amber-400 bg-amber-400/20 text-white font-bold'
-                    : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/15'
+                    ? 'border-blue-500 bg-slate-950 text-white font-bold'
+                    : 'border-slate-800 bg-slate-950/40 text-slate-300 hover:bg-slate-950'
                 }`}
               >
-                <div className="font-bold text-sm">{lang === 'id' ? item.nama_id : item.nama_en}</div>
-                <div className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
-                  {lang === 'id' ? item.deskripsi_id : item.deskripsi_en}
+                <div className="font-bold text-sm flex items-center gap-2">
+                  <Target size={14} className={item.id === progress.ideaId ? 'text-blue-400' : 'text-slate-500'} />
+                  <span>{lang === 'id' ? item.nama_id : item.nama_en}</span>
+                </div>
+                <div className="text-[11px] text-slate-400 line-clamp-1 mt-1 pl-5">
+                  {getIdeaDescription(item, lang)}
                 </div>
               </button>
             ))}
@@ -1478,27 +1496,27 @@ function BlueprintView({ gameData, progress, onBackToMap, onSelectIdea, onOpenHo
         </div>
       )}
 
-      {/* Target Checkpoints Required Section */}
-      <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 space-y-4">
-        <div>
-          <div className="flex items-center justify-between">
-            <h4 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
-              <Target size={18} className="text-amber-500" />
-              <span>{t('Gedung Target Blueprint', 'Blueprint Target Buildings')}</span>
-            </h4>
-            <span className="text-xs font-bold text-slate-500">
-              {scannedTargetCount}/{targetCheckpoints.length} {t('Dikunjungi', 'Visited')}
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 mt-1">
-            {t(
-              'Kunjungi gedung-gedung ini di Solo Technopark untuk mengumpulkan skill yang dibutuhkan blueprint.',
-              'Visit these buildings at Solo Technopark to collect skills required for your blueprint.'
-            )}
-          </p>
+      {/* Target Buildings List - Flat List Layout (No Nested Bordered Cards) */}
+      <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h4 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
+            <Building size={18} className="text-blue-600" />
+            <span>{t('Gedung Target Blueprint', 'Blueprint Target Buildings')}</span>
+          </h4>
+          <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+            {scannedTargetCount}/{targetCheckpoints.length} {t('Dikunjungi', 'Visited')}
+          </span>
         </div>
 
-        <div className="space-y-2.5">
+        <p className="text-xs text-slate-500 -mt-1 leading-relaxed">
+          {t(
+            'Kunjungi gedung-gedung ini di Solo Technopark untuk mengumpulkan skill yang dibutuhkan blueprint.',
+            'Visit these buildings at Solo Technopark to collect skills required for your blueprint.'
+          )}
+        </p>
+
+        {/* Flat Divider-separated List (No nested shadow boxes) */}
+        <div className="divide-y divide-slate-100 border-t border-b border-slate-100">
           {targetCheckpoints.map((cp: any) => {
             const isScanned = progress.scannedCheckpoints.includes(cp.id);
             const card = gameData.cards.find((c: any) => c.checkpoint_id === cp.id);
@@ -1507,37 +1525,34 @@ function BlueprintView({ gameData, progress, onBackToMap, onSelectIdea, onOpenHo
             return (
               <div 
                 key={cp.id} 
-                className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
-                  isScanned 
-                    ? 'bg-emerald-50/80 border-emerald-200 text-slate-900 shadow-sm' 
-                    : 'bg-slate-50 border-slate-200 text-slate-700'
-                }`}
+                className="py-3 px-1 flex items-center justify-between gap-3 hover:bg-slate-50/80 transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className={`w-9 h-9 rounded-xl font-black text-sm flex items-center justify-center shrink-0 shadow-sm ${
-                    isScanned ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'
+                  <div className={`w-8 h-8 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 ${
+                    isScanned ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'
                   }`}>
-                    {isScanned ? <Check size={18} strokeWidth={3} /> : '🎯'}
+                    {isScanned ? <Check size={16} strokeWidth={3} /> : <Target size={16} />}
                   </div>
                   <div className="min-w-0">
-                    <div className="font-black text-sm text-slate-900 truncate">
+                    <div className="font-extrabold text-sm text-slate-900 truncate">
                       {lang === 'id' ? cp.nama_id : cp.nama_en}
                     </div>
-                    <div className="text-[11px] text-slate-500 font-medium">
-                      {lang === 'id' ? zone?.nama_id : zone?.nama_en} {card?.tags?.length ? `• Tag: ${card.tags.join(', ')}` : ''}
+                    <div className="text-[11px] text-slate-500 font-medium truncate">
+                      {lang === 'id' ? zone?.nama_id : zone?.nama_en} {card?.tags?.length ? `• ${card.tags.join(', ')}` : ''}
                     </div>
                   </div>
                 </div>
 
                 <div className="shrink-0">
                   {isScanned ? (
-                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[11px] font-black rounded-xl border border-emerald-200">
-                      ✓ {t('Terkumpul', 'Collected')}
+                    <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-[11px] font-black rounded-lg border border-blue-200 flex items-center gap-1">
+                      <Check size={12} strokeWidth={3} />
+                      <span>{t('Terkumpul', 'Collected')}</span>
                     </span>
                   ) : (
-                    <span className="px-2.5 py-1 bg-amber-100 text-amber-900 text-[11px] font-bold rounded-xl border border-amber-200 flex items-center gap-1">
-                      <Lock size={11} />
-                      <span>{t('Belum Visited', 'Not Visited')}</span>
+                    <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[11px] font-semibold rounded-lg border border-slate-200 flex items-center gap-1">
+                      <Lock size={12} className="text-slate-400" />
+                      <span>{t('Belum Dikunjungi', 'Not Visited')}</span>
                     </span>
                   )}
                 </div>
@@ -1547,9 +1562,9 @@ function BlueprintView({ gameData, progress, onBackToMap, onSelectIdea, onOpenHo
         </div>
       </div>
 
-      {/* Installed Cards Section */}
-      <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
-        <h4 className="font-extrabold text-slate-900 text-base mb-3 flex items-center gap-2">
+      {/* Installed Cards Section - Flat List Layout */}
+      <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 space-y-4">
+        <h4 className="font-extrabold text-slate-900 text-base flex items-center gap-2 border-b border-slate-100 pb-3">
           <Award size={18} className="text-blue-600" />
           <span>{t('Semua Komponen Terpasang', 'All Installed Components')}</span>
         </h4>
@@ -1558,26 +1573,27 @@ function BlueprintView({ gameData, progress, onBackToMap, onSelectIdea, onOpenHo
             {t('Belum ada kartu terkumpul. Kunjungi checkpoint di peta!', 'No cards collected yet. Visit checkpoints on the map!')}
           </p>
         ) : (
-          <div className="space-y-2.5">
+          <div className="divide-y divide-slate-100 border-t border-b border-slate-100">
             {progress.collectedCards.map((cardId: string) => {
               const card = gameData.cards.find((c: any) => c.id === cardId);
               if (!card) return null;
               const checkpoint = gameData.checkpoints.find((cp: any) => cp.id === card.checkpoint_id);
               const isTargetCard = targetCheckpoints.some((cp: any) => cp.id === card.checkpoint_id);
               return (
-                <div key={card.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100 transition-all hover:bg-slate-100/80">
+                <div key={card.id} className="py-3 px-1 flex items-center justify-between gap-3 hover:bg-slate-50/80 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center justify-center text-xs font-black text-blue-600">
+                    <div className="w-8 h-8 bg-blue-50 text-blue-700 rounded-lg border border-blue-200 flex items-center justify-center text-xs font-black">
                       {card.tipe.substring(0, 2).toUpperCase()}
                     </div>
                     <div>
-                      <div className="font-bold text-sm text-slate-900">{lang === 'id' ? checkpoint?.nama_id : checkpoint?.nama_en}</div>
-                      <div className="text-xs text-slate-500">{card.tipe}</div>
+                      <div className="font-extrabold text-sm text-slate-900">{lang === 'id' ? checkpoint?.nama_id : checkpoint?.nama_en}</div>
+                      <div className="text-[11px] text-slate-500 capitalize">{card.tipe}</div>
                     </div>
                   </div>
                   {isTargetCard && (
-                    <span className="text-[10px] font-black px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md border border-amber-300 uppercase">
-                      🎯 {t('Target Match', 'Target Match')}
+                    <span className="text-[10px] font-black px-2 py-0.5 bg-blue-100 text-blue-800 rounded-md border border-blue-200 flex items-center gap-1">
+                      <Target size={11} className="text-blue-600" />
+                      <span>{t('Target Match', 'Target Match')}</span>
                     </span>
                   )}
                 </div>
@@ -1587,9 +1603,10 @@ function BlueprintView({ gameData, progress, onBackToMap, onSelectIdea, onOpenHo
         )}
       </div>
       
+      {/* Return Button (Solid Blue) */}
       <button 
         onClick={onBackToMap}
-        className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-slate-900 text-white font-bold text-base shadow-xl shadow-slate-900/20 active:scale-95 transition-all duration-300 hover:-translate-y-0.5 cursor-pointer"
+        className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-base shadow-xl active:scale-95 transition-all duration-300 cursor-pointer border border-blue-400/30"
       >
         <Map size={20} />
         <span>{t('Kembali ke Peta Kawasan', 'Back to Area Map')}</span>
