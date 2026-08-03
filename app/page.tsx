@@ -1,10 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { GameData, fetchGameData } from '../lib/data';
+import { GameData, fetchGameData, getTargetCheckpointsForIdea } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { Map, ScanLine, LayoutGrid, Hammer, X, Check, ArrowRight, Lock, Star, Plus, Minus, RotateCcw, Building, QrCode, Compass, Keyboard } from 'lucide-react';
+import { 
+  Map, ScanLine, LayoutGrid, Hammer, X, Check, ArrowRight, Lock, Star, Plus, Minus, 
+  RotateCcw, Building, QrCode, Compass, Keyboard, HelpCircle, Target, Sparkles, Info, 
+  CheckCircle2, ChevronRight, RefreshCw, Award
+} from 'lucide-react';
 
 import snapshotData from '../data/snapshot.json';
 import mapImage from '../imageclip_opt.webp';
@@ -25,9 +29,12 @@ interface StatQueueItem {
   terakhir_update: string;
 }
 
+
+
 export default function GameApp() {
   const [view, setView] = useState<ViewState>('landing');
   const [lang, setLang] = useState<Lang>('id');
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [gameData, setGameData] = useState<GameData | null>(null);
   const [progress, setProgress] = useState<PlayerProgress>({
     ideaId: null,
@@ -101,6 +108,10 @@ export default function GameApp() {
     setView('map');
   };
 
+  const handleSelectIdea = (ideaId: string) => {
+    setProgress(prev => ({ ...prev, ideaId }));
+  };
+
   const handleScanSuccess = (decodedText: string) => {
     if (!gameData) return;
     
@@ -169,11 +180,20 @@ export default function GameApp() {
         {/* Top Header Bar for non-map sub-pages */}
         {view !== 'landing' && view !== 'map' && (
           <header className="shrink-0 h-12 w-full z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 flex justify-between items-center shadow-sm">
-            <div className="font-extrabold text-lg text-slate-800 tracking-tight">
-              Jelajah STP
+            <div className="font-extrabold text-lg text-slate-800 tracking-tight flex items-center gap-2">
+              <span>Jelajah STP</span>
             </div>
             
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowHowToPlay(true)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-bold transition-all"
+              >
+                <HelpCircle size={14} />
+                <span>{t('Bantuan', 'Help')}</span>
+              </button>
+
               {/* Language Switcher */}
               <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
                 <button 
@@ -207,6 +227,7 @@ export default function GameApp() {
                 isLoading={isLoading}
                 error={error}
                 onStart={handleStart}
+                onOpenHowToPlay={() => setShowHowToPlay(true)}
                 t={t}
               />
             </div>
@@ -219,6 +240,7 @@ export default function GameApp() {
                 progress={progress} 
                 onScan={() => setView('scanner')} 
                 onScanManual={handleScanSuccess}
+                onOpenHowToPlay={() => setShowHowToPlay(true)}
                 t={t} 
                 lang={lang}
                 setLang={setLang}
@@ -281,12 +303,22 @@ export default function GameApp() {
                 gameData={gameData} 
                 progress={progress} 
                 onBackToMap={() => setView('map')}
+                onSelectIdea={handleSelectIdea}
+                onOpenHowToPlay={() => setShowHowToPlay(true)}
                 t={t}
                 lang={lang}
               />
             </div>
           )}
         </main>
+
+        {showHowToPlay && (
+          <HowToPlayModal
+            onClose={() => setShowHowToPlay(false)}
+            t={t}
+            lang={lang}
+          />
+        )}
 
         {/* Fixed Non-overlapping Bottom Navigation Bar */}
         {view !== 'landing' && (
@@ -336,7 +368,80 @@ export default function GameApp() {
 // COMPONENTS
 // ==========================================
 
-function LandingView({ lang, setLang, gameData, isLoading, error, onStart, t }: any) {
+function HowToPlayModal({ onClose, t, lang }: any) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-y-auto relative animate-in zoom-in-95 duration-300 text-slate-800">
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-600 transition-all cursor-pointer"
+        >
+          <X size={20} />
+        </button>
+
+        <div className="flex items-center gap-3 mb-5">
+          <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl">
+            <HelpCircle size={28} />
+          </div>
+          <div className="text-left">
+            <h2 className="text-xl font-black text-slate-900 leading-tight">{t('Cara Bermain', 'How to Play')}</h2>
+            <p className="text-xs text-slate-500">{t('Petualangan Inovasi Solo Technopark', 'Solo Technopark Innovation Quest')}</p>
+          </div>
+        </div>
+
+        <div className="space-y-3.5 text-left">
+          {/* Step 1 */}
+          <div className="flex gap-3.5 p-3.5 bg-blue-50/80 border border-blue-100 rounded-2xl">
+            <div className="w-9 h-9 rounded-xl bg-blue-600 text-white font-black flex items-center justify-center text-sm shrink-0 shadow-sm">
+              1
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm">{t('Pilih Blueprint Target', 'Select Target Blueprint')}</h3>
+              <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                {t('Pilih salah satu ide inovasi produk yang ingin kamu rancang. Setiap blueprint membutuhkan checkpoint gedung khusus di kawasan.', 'Choose an innovation idea at the start. Each blueprint requires specific building checkpoints across the park.')}
+              </p>
+            </div>
+          </div>
+
+          {/* Step 2 */}
+          <div className="flex gap-3.5 p-3.5 bg-amber-50/80 border border-amber-100 rounded-2xl">
+            <div className="w-9 h-9 rounded-xl bg-amber-500 text-white font-black flex items-center justify-center text-sm shrink-0 shadow-sm">
+              2
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm">{t('Jelajah & Scan QR Code', 'Explore & Scan QR Code')}</h3>
+              <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                {t('Perhatikan pin target (🎯) pada peta interaktif. Kunjungi gedung di Solo Technopark dan scan QR code di lokasi untuk mengklaim kartu.', 'Look for target pins (🎯) on the interactive map. Visit real buildings at Solo Technopark and scan QR codes to claim cards.')}
+              </p>
+            </div>
+          </div>
+
+          {/* Step 3 */}
+          <div className="flex gap-3.5 p-3.5 bg-emerald-50/80 border border-emerald-100 rounded-2xl">
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white font-black flex items-center justify-center text-sm shrink-0 shadow-sm">
+              3
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm">{t('Kumpulkan & Rakit Inovasi', 'Collect & Assemble Innovation')}</h3>
+              <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                {t('Setiap checkpoint memberikan Kartu Skill/Riset. Kumpulkan semua target untuk melengkapi blueprint dan tingkatkan skor inovasimu!', 'Each checkpoint grants a Skill/Research card. Collect all targets to complete your blueprint and maximize your score!')}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={onClose}
+          className="mt-6 w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-base shadow-lg transition-all cursor-pointer"
+        >
+          {t('Saya Mengerti, Mulai!', 'I Understand, Let\'s Go!')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function LandingView({ lang, setLang, gameData, isLoading, error, onStart, onOpenHowToPlay, t }: any) {
   const ideas = gameData?.ideas || [];
   const [selectedIdea, setSelectedIdea] = useState<string | null>(null);
 
@@ -347,74 +452,162 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, t }: 
   }, [ideas, selectedIdea]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] text-center space-y-8">
-      <div className="rounded-2xl border border-white/30 bg-white/15 px-6 py-5 shadow-xl backdrop-blur-md">
-        <h1 className="text-3xl font-black text-white mb-2">Jelajah Solo Technopark</h1>
-        <p className="text-slate-100">{t('Mulai petualangan inovasimu', 'Start your innovation journey')}</p>
+    <div className="flex flex-col items-center justify-center min-h-[85vh] text-center space-y-5 pb-6">
+      {/* App Main Banner */}
+      <div className="w-full rounded-3xl border border-white/30 bg-white/15 px-6 py-6 shadow-2xl backdrop-blur-md relative overflow-hidden">
+        <div className="absolute top-0 right-0 -mt-6 -mr-6 w-24 h-24 bg-blue-400/20 rounded-full blur-xl pointer-events-none"></div>
+        <h1 className="text-3xl font-black text-white tracking-tight mb-1">
+          Jelajah Solo Technopark
+        </h1>
+        <p className="text-slate-200 text-xs font-medium max-w-xs mx-auto">
+          {t(
+            'Jelajah kawasan, temukan checkpoint, dan wujudkan ide inovasimu!',
+            'Explore the park, discover checkpoints, and build your innovation idea!'
+          )}
+        </p>
+
+        {/* 3-Step Gamification Flow Loop Pill */}
+        <div className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900/60 border border-white/20 text-[11px] font-bold text-amber-300 shadow-inner">
+          <span>🏛️ {t('Jelajah Gedung', 'Explore')}</span>
+          <ChevronRight size={12} className="text-white/60" />
+          <span>📱 {t('Scan QR', 'Scan QR')}</span>
+          <ChevronRight size={12} className="text-white/60" />
+          <span>⚡ {t('Rakit Inovasi', 'Build Innovation')}</span>
+        </div>
       </div>
 
-      <div className="flex bg-slate-200 p-1 rounded-full w-full max-w-[200px]">
-        <button 
-          onClick={() => setLang('id')} 
-          className={`flex-1 py-2 rounded-full text-sm font-semibold transition-all ${lang === 'id' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'}`}
+      {/* Control Bar: Language Switcher & How to Play Button */}
+      <div className="w-full flex items-center justify-between gap-3">
+        {/* Language Switcher */}
+        <div className="flex bg-slate-900/60 p-1 rounded-2xl border border-white/20 shadow-md">
+          <button 
+            type="button"
+            onClick={() => setLang('id')} 
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${lang === 'id' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:text-white'}`}
+          >
+            ID
+          </button>
+          <button 
+            type="button"
+            onClick={() => setLang('en')} 
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${lang === 'en' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:text-white'}`}
+          >
+            EN
+          </button>
+        </div>
+
+        {/* How to Play Button */}
+        <button
+          type="button"
+          onClick={onOpenHowToPlay}
+          className="flex items-center gap-1.5 px-4 py-2 bg-amber-500/90 hover:bg-amber-400 active:scale-95 text-slate-950 font-extrabold text-xs rounded-2xl border border-amber-300/50 shadow-lg transition-all cursor-pointer"
         >
-          ID
-        </button>
-        <button 
-          onClick={() => setLang('en')} 
-          className={`flex-1 py-2 rounded-full text-sm font-semibold transition-all ${lang === 'en' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'}`}
-        >
-          EN
+          <HelpCircle size={15} strokeWidth={2.5} />
+          <span>{t('Cara Bermain', 'How to Play')}</span>
         </button>
       </div>
 
-      <div className="w-full rounded-2xl border border-white/30 bg-slate-950/35 p-4 text-left shadow-xl backdrop-blur-xl">
-        <h2 className="font-bold text-lg mb-3 text-white">{t('Pilih Ide Produkmu:', 'Choose Your Product Idea:')}</h2>
+      {/* Product Blueprint Selector Card */}
+      <div className="w-full rounded-3xl border border-white/25 bg-slate-950/45 p-5 text-left shadow-2xl backdrop-blur-xl space-y-4">
+        <div>
+          <div className="flex items-center justify-between">
+            <h2 className="font-extrabold text-lg text-white flex items-center gap-2">
+              <Target size={18} className="text-amber-400" />
+              <span>{t('Pilih Blueprint Target:', 'Choose Target Blueprint:')}</span>
+            </h2>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded-md border border-amber-400/30">
+              {ideas.length} {t('Opsi', 'Options')}
+            </span>
+          </div>
+          <p className="text-xs text-slate-300 mt-1">
+            {t(
+              'Pilihan ini menentukan gedung checkpoint mana yang harus kamu kunjungi.',
+              'This choice determines which building checkpoints you need to visit.'
+            )}
+          </p>
+        </div>
+
         {isLoading ? (
-          <div className="p-4 rounded-xl border border-white/20 bg-white/80 text-center text-slate-600 animate-pulse">
-            {t('Memuat data dari Supabase...', 'Loading data from Supabase...')}
+          <div className="p-4 rounded-2xl border border-white/20 bg-white/80 text-center text-slate-600 animate-pulse">
+            {t('Memuat data ide...', 'Loading ideas data...')}
           </div>
         ) : ideas.length > 0 ? (
-          <div className="grid gap-3">
-            {ideas.map((idea: any) => (
-              <div 
-                key={idea.id} 
-                onClick={() => setSelectedIdea(idea.id)}
-                className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedIdea === idea.id ? 'border-blue-400 bg-blue-600/90 text-white shadow-md' : 'border-white/20 bg-white/85 text-slate-800'}`}
-              >
-                <h3 className="font-bold">{lang === 'id' ? idea.nama_id : idea.nama_en}</h3>
-              </div>
-            ))}
+          <div className="grid gap-2.5">
+            {ideas.map((idea: any) => {
+              const isSelected = selectedIdea === idea.id;
+              const reqCheckpoints = getTargetCheckpointsForIdea(idea.id, gameData);
+              return (
+                <div 
+                  key={idea.id} 
+                  onClick={() => setSelectedIdea(idea.id)}
+                  className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 ${
+                    isSelected 
+                      ? 'border-amber-400 bg-gradient-to-r from-blue-700/90 to-blue-900/90 text-white shadow-xl ring-2 ring-amber-400/50 translate-x-1' 
+                      : 'border-white/15 bg-white/10 text-white hover:bg-white/20 hover:border-white/30'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-extrabold text-base leading-tight">
+                      {lang === 'id' ? idea.nama_id : idea.nama_en}
+                    </h3>
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${isSelected ? 'border-amber-400 bg-amber-400 text-slate-900 font-bold text-xs' : 'border-white/40'}`}>
+                      {isSelected ? '✓' : ''}
+                    </div>
+                  </div>
+
+                  {/* Expanded Description & Target Checkpoints Info */}
+                  {isSelected && (
+                    <div className="mt-3 pt-3 border-t border-white/20 text-xs space-y-2 animate-in fade-in duration-200">
+                      <p className="text-blue-100 font-medium leading-relaxed">
+                        {lang === 'id' ? (idea.deskripsi_id || idea.nama_id) : (idea.deskripsi_en || idea.nama_en)}
+                      </p>
+                      
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-300">
+                          🎯 {t('Target', 'Target')}:
+                        </span>
+                        {reqCheckpoints.map((cp: any) => (
+                          <span key={cp.id} className="px-2 py-0.5 rounded-full bg-slate-900/70 text-[10px] text-white border border-white/20 font-bold">
+                            {lang === 'id' ? cp.nama_id : cp.nama_en}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div className="p-4 rounded-xl border border-red-200/70 bg-red-50/90 text-red-700 text-sm">
-            {error || t('Gagal memuat data ide, cek koneksi Supabase', 'Failed to load ideas data, check Supabase connection')}
+            {error || t('Gagal memuat data ide', 'Failed to load ideas')}
           </div>
         )}
       </div>
 
-      {error && ideas.length > 0 && (
-        <div className="p-3 bg-red-100/90 text-red-700 rounded-lg text-sm w-full">
-          {error}
-        </div>
-      )}
-
+      {/* Start Playing Button */}
       <button 
         onClick={() => selectedIdea && onStart(selectedIdea)}
         disabled={isLoading || !selectedIdea}
-        className="w-full py-4 rounded-xl bg-blue-600 text-white font-bold text-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-all duration-300 disabled:opacity-50 hover:-translate-y-0.5"
+        className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 text-slate-950 font-black text-lg shadow-2xl hover:brightness-110 active:scale-95 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 group cursor-pointer"
       >
-        {isLoading ? t('Memuat Data...', 'Loading Data...') : t('Mulai Bermain', 'Start Playing')}
+        <span>{isLoading ? t('Memuat...', 'Loading...') : t('Mulai Petualangan', 'Start Adventure')}</span>
+        <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />
       </button>
     </div>
   );
 }
 
-function MapView({ gameData, progress, onScan, onScanManual, t, lang, setLang }: any) {
+function MapView({ gameData, progress, onScan, onScanManual, onOpenHowToPlay, t, lang, setLang }: any) {
   const [selectedCheckpoint, setSelectedCheckpoint] = useState<any | null>(null);
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [isCheckpointPopupVisible, setIsCheckpointPopupVisible] = useState(false);
   
+  const targetCheckpoints = getTargetCheckpointsForIdea(progress.ideaId, gameData);
+  const targetCheckpointIds = targetCheckpoints.map((cp: any) => cp.id);
+  const activeIdea = gameData?.ideas?.find((i: any) => i.id === progress.ideaId);
+  const scannedTargetCount = targetCheckpoints.filter((cp: any) => progress.scannedCheckpoints.includes(cp.id)).length;
+
   // Direct refs for 60FPS GPU hardware acceleration without React re-render overhead
   const scaleRef = useRef(1);
   const panRef = useRef({ x: 0, y: 0 });
@@ -617,34 +810,73 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang, setLang }:
 
   return (
     <div className="relative flex-1 w-full h-full overflow-hidden bg-slate-950 select-none touch-none animate-in fade-in duration-300">
-      {/* Top Floating App Title & Language Switcher */}
-      <div className="absolute top-4 left-4 right-4 z-30 flex items-center justify-between pointer-events-none">
-        <div className="pointer-events-auto bg-white/95 backdrop-blur-md border border-slate-200 px-4 py-2 rounded-2xl shadow-xl font-black text-slate-800 text-base flex items-center gap-2">
-          <Map className="text-blue-600" size={20} />
-          <span>Jelajah STP</span>
+      {/* Top Floating App Header & Active Blueprint Objective */}
+      <div className="absolute top-3 left-3 right-3 z-30 flex flex-col gap-2 pointer-events-none">
+        <div className="flex items-center justify-between pointer-events-auto">
+          <div className="bg-white/95 backdrop-blur-md border border-slate-200 px-3.5 py-1.5 rounded-2xl shadow-xl font-black text-slate-800 text-sm flex items-center gap-2">
+            <Map className="text-blue-600" size={18} />
+            <span>Jelajah STP</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* How to Play Help Button */}
+            <button 
+              type="button"
+              onClick={onOpenHowToPlay} 
+              className="bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 px-3 py-1.5 rounded-2xl font-black text-xs shadow-xl border border-amber-300 flex items-center gap-1 cursor-pointer"
+            >
+              <HelpCircle size={14} strokeWidth={2.5} />
+              <span>{t('Petunjuk', 'Guide')}</span>
+            </button>
+
+            {/* Language Switcher */}
+            <div className="flex bg-white/95 backdrop-blur-md p-1 rounded-2xl border border-slate-200 shadow-xl">
+              <button 
+                type="button"
+                onClick={() => setLang('id')} 
+                className={`px-2.5 py-1 rounded-xl text-xs font-black transition-all ${
+                  lang === 'id' ? 'bg-blue-600 text-white shadow-md scale-105' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                ID
+              </button>
+              <button 
+                type="button"
+                onClick={() => setLang('en')} 
+                className={`px-2.5 py-1 rounded-xl text-xs font-black transition-all ${
+                  lang === 'en' ? 'bg-blue-600 text-white shadow-md scale-105' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                EN
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* High Contrast Prominent Language Switcher Toggle (ID / EN) */}
-        <div className="pointer-events-auto flex bg-white/95 backdrop-blur-md p-1 rounded-2xl border border-slate-200 shadow-xl">
-          <button 
-            type="button"
-            onClick={() => setLang('id')} 
-            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
-              lang === 'id' ? 'bg-blue-600 text-white shadow-md scale-105' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            ID
-          </button>
-          <button 
-            type="button"
-            onClick={() => setLang('en')} 
-            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
-              lang === 'en' ? 'bg-blue-600 text-white shadow-md scale-105' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            EN
-          </button>
-        </div>
+        {/* Active Blueprint Target Banner */}
+        {activeIdea && (
+          <div className="pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-amber-400/50 px-3.5 py-2 rounded-2xl shadow-2xl flex items-center justify-between text-white animate-in slide-in-from-top-2 duration-300">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center shrink-0">
+                <Target size={16} className="text-amber-400" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] font-black uppercase tracking-wider text-amber-300 truncate">
+                  🎯 {t('Blueprint', 'Blueprint')}: {lang === 'id' ? activeIdea.nama_id : activeIdea.nama_en}
+                </div>
+                <div className="text-xs font-bold text-slate-200">
+                  {scannedTargetCount} / {targetCheckpoints.length} {t('Checkpoint Target Selesai', 'Target Checkpoints Done')}
+                </div>
+              </div>
+            </div>
+
+            <div className="shrink-0 pl-2">
+              <div className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-400 text-slate-950">
+                {Math.round((scannedTargetCount / (targetCheckpoints.length || 1)) * 100)}%
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Viewport Peta Full-Bleed Center */}
@@ -683,11 +915,12 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang, setLang }:
               style={{ imageRendering: 'auto' }}
             />
 
-            {/* RENDER PIN CHECKPOINT DENGAN WARNA DINAMIS */}
+            {/* RENDER PIN CHECKPOINT DENGAN WARNA DINAMIS & BLUEPRINT TARGET */}
             {gameData?.checkpoints?.map((cp: any) => {
               const isScanned = progress.scannedCheckpoints.includes(cp.id);
               const isLastVisited = progress.lastVisitedCheckpointId === cp.id;
               const isRestricted = cp.status_akses === 'dilarang';
+              const isTarget = targetCheckpointIds.includes(cp.id);
               const posX = cp.posisi_x ?? 50;
               const posY = cp.posisi_y ?? 50;
               
@@ -717,18 +950,25 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang, setLang }:
                     isRestricted ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-125 active:scale-110'
                   }`}
                   style={{ left: `${posX}%`, top: `${posY}%` }}
-                  title={isRestricted ? `${pinLabel} — ${restrictedLabel}` : pinLabel}
+                  title={isRestricted ? `${pinLabel} — ${restrictedLabel}` : isTarget ? `🎯 TARGET BLUEPRINT: ${pinLabel}` : pinLabel}
                 >
+                  {/* Target Badge Icon */}
+                  {isTarget && !isScanned && (
+                    <div className="absolute -top-3 -right-3 z-20 bg-amber-400 text-slate-950 font-black text-[10px] w-5 h-5 rounded-full flex items-center justify-center shadow-lg animate-bounce border border-amber-200">
+                      🎯
+                    </div>
+                  )}
+
                   {isRestricted ? (
                     <div className={`w-6 h-6 bg-slate-700 border-2 border-red-400 rounded-full shadow-md flex items-center justify-center active:scale-90 transition-transform ${isLastVisited ? 'animate-bounce' : ''}`}>
                       <Lock size={11} className="text-red-300" strokeWidth={2.5} />
                     </div>
                   ) : isScanned ? (
-                    <div className={`w-7 h-7 bg-emerald-500 border-2 border-white text-white rounded-full flex items-center justify-center shadow-lg ${isLastVisited ? 'animate-bounce' : ''}`}>
+                    <div className={`w-7 h-7 ${isTarget ? 'bg-emerald-500 ring-4 ring-amber-400 shadow-amber-500/50' : 'bg-emerald-500'} border-2 border-white text-white rounded-full flex items-center justify-center shadow-lg ${isLastVisited ? 'animate-bounce' : ''}`}>
                       <Check size={16} strokeWidth={3} />
                     </div>
                   ) : (
-                    <div className={`w-6 h-6 ${zoneColor.bg} border-2 border-white rounded-full shadow-md flex items-center justify-center ${isLastVisited ? 'animate-bounce' : ''}`}>
+                    <div className={`w-6 h-6 ${zoneColor.bg} border-2 border-white rounded-full shadow-md flex items-center justify-center ${isTarget ? 'ring-4 ring-amber-400 ring-offset-2 ring-offset-slate-900 animate-pulse shadow-xl shadow-amber-400/60 scale-110' : ''} ${isLastVisited ? 'animate-bounce' : ''}`}>
                       <div className={`w-2 h-2 ${zoneColor.dot} rounded-full`}></div>
                     </div>
                   )}
@@ -740,10 +980,15 @@ function MapView({ gameData, progress, onScan, onScanManual, t, lang, setLang }:
 
         {/* Selected Checkpoint Popup Overlay */}
         {selectedCheckpoint && (
-          <div className={`absolute left-4 top-16 z-40 max-w-[calc(100%-2rem)] sm:max-w-xs rounded-2xl border border-slate-200 bg-white/95 px-4 py-3 shadow-2xl backdrop-blur-md transition-all duration-300 ease-out ${isCheckpointPopupVisible && isPopupVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2'}`}>
+          <div className={`absolute left-4 top-28 z-40 max-w-[calc(100%-2rem)] sm:max-w-xs rounded-2xl border border-slate-200 bg-white/95 px-4 py-3 shadow-2xl backdrop-blur-md transition-all duration-300 ease-out ${isCheckpointPopupVisible && isPopupVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2'}`}>
             <div className="flex items-start gap-2.5">
               <Building size={18} className="mt-0.5 text-blue-600 shrink-0" />
               <div>
+                {targetCheckpointIds.includes(selectedCheckpoint.id) && (
+                  <span className="inline-block px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-black rounded-md mb-1 border border-amber-300 uppercase tracking-wider">
+                    🎯 {t('Target Blueprint Kamu!', 'Your Blueprint Target!')}
+                  </span>
+                )}
                 <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
                   {t('Bangunan / area', 'Building / area')}
                 </p>
@@ -1120,9 +1365,14 @@ function InventoryView({ gameData, progress, onBackToMap, t, lang }: any) {
   );
 }
 
-function BlueprintView({ gameData, progress, onBackToMap, t, lang }: any) {
+function BlueprintView({ gameData, progress, onBackToMap, onSelectIdea, onOpenHowToPlay, t, lang }: any) {
   const idea = gameData.ideas.find((i: any) => i.id === progress.ideaId);
+  const [isChangingIdea, setIsChangingIdea] = useState(false);
   
+  const targetCheckpoints = getTargetCheckpointsForIdea(progress.ideaId, gameData);
+  const scannedTargetCount = targetCheckpoints.filter((cp: any) => progress.scannedCheckpoints.includes(cp.id)).length;
+  const progressPercent = Math.round((scannedTargetCount / (targetCheckpoints.length || 1)) * 100);
+
   let baseScore = progress.collectedCards.length;
   let tagMatches = 0;
   
@@ -1141,45 +1391,195 @@ function BlueprintView({ gameData, progress, onBackToMap, t, lang }: any) {
   const totalScore = baseScore + tagMatches;
   
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className="bg-gradient-to-br from-blue-900 to-slate-900 p-6 rounded-2xl text-white shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
+    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300 pb-6">
+      {/* Main Blueprint Card */}
+      <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 p-6 rounded-3xl text-white shadow-2xl relative overflow-hidden border border-white/20">
+        <div className="absolute top-0 right-0 w-36 h-36 bg-blue-500/20 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
         
-        <h2 className="text-white/80 font-medium text-sm mb-1">{t('Blueprint Inovasi', 'Innovation Blueprint')}</h2>
-        <h3 className="text-2xl font-black mb-4">{lang === 'id' ? idea?.nama_id : idea?.nama_en}</h3>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <span className="inline-flex items-center gap-1 text-amber-300 font-extrabold text-xs uppercase tracking-wider bg-amber-400/20 px-3 py-1 rounded-full border border-amber-400/30">
+            <Target size={14} />
+            {t('Blueprint Inovasi Target', 'Target Innovation Blueprint')}
+          </span>
+
+          <button
+            onClick={() => setIsChangingIdea(!isChangingIdea)}
+            className="text-xs text-blue-200 hover:text-white underline font-semibold flex items-center gap-1 cursor-pointer"
+          >
+            <RefreshCw size={13} />
+            <span>{t('Ganti Blueprint', 'Change Blueprint')}</span>
+          </button>
+        </div>
+
+        <h3 className="text-2xl font-black text-white leading-tight mb-2">
+          {lang === 'id' ? idea?.nama_id : idea?.nama_en}
+        </h3>
+
+        <p className="text-xs text-slate-200 leading-relaxed mb-4 bg-white/10 p-3 rounded-2xl border border-white/10">
+          {lang === 'id' ? (idea?.deskripsi_id || idea?.nama_id) : (idea?.deskripsi_en || idea?.nama_en)}
+        </p>
+
+        {/* Blueprint Target Completion Bar */}
+        <div className="space-y-1.5 mb-4">
+          <div className="flex justify-between text-xs font-bold">
+            <span className="text-slate-300">{t('Kemajuan Target Blueprint', 'Blueprint Target Progress')}</span>
+            <span className="text-amber-400 font-extrabold">{scannedTargetCount} / {targetCheckpoints.length} Checkpoint ({progressPercent}%)</span>
+          </div>
+          <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-white/20 p-0.5">
+            <div 
+              className="h-full bg-gradient-to-r from-amber-400 to-yellow-400 rounded-full transition-all duration-500 shadow-lg shadow-amber-400/50"
+              style={{ width: `${progressPercent}%` }}
+            ></div>
+          </div>
+        </div>
         
-        <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20">
-          <div className="text-sm text-white/80 mb-1">{t('Total Skor', 'Total Score')}</div>
-          <div className="text-4xl font-black text-amber-400">{totalScore}</div>
-          {tagMatches > 0 && (
-             <div className="text-xs text-amber-200 mt-1 font-medium">
-               +{tagMatches} {t('Bonus Kecocokan Ide!', 'Idea Match Bonus!')}
-             </div>
-          )}
+        <div className="grid grid-cols-2 gap-3 pt-2">
+          <div className="bg-white/10 backdrop-blur-sm p-3.5 rounded-2xl border border-white/15">
+            <div className="text-xs text-slate-300 font-medium mb-0.5">{t('Total Skor Inovasi', 'Total Score')}</div>
+            <div className="text-3xl font-black text-amber-400">{totalScore}</div>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm p-3.5 rounded-2xl border border-white/15">
+            <div className="text-xs text-slate-300 font-medium mb-0.5">{t('Bonus Kecocokan', 'Match Bonus')}</div>
+            <div className="text-3xl font-black text-emerald-400">+{tagMatches}</div>
+          </div>
         </div>
       </div>
 
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-        <h4 className="font-bold text-slate-800 mb-3">{t('Komponen Terpasang', 'Installed Components')}</h4>
+      {/* Switch Blueprint Drawer / Section */}
+      {isChangingIdea && (
+        <div className="bg-slate-900 text-white p-5 rounded-3xl border border-amber-400/40 shadow-2xl space-y-3 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between">
+            <h4 className="font-extrabold text-sm text-amber-300">{t('Pilih Blueprint Baru:', 'Select New Blueprint:')}</h4>
+            <button onClick={() => setIsChangingIdea(false)} className="text-slate-400 hover:text-white text-xs font-bold">
+              <X size={16} />
+            </button>
+          </div>
+          <div className="grid gap-2">
+            {gameData.ideas.map((item: any) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  onSelectIdea(item.id);
+                  setIsChangingIdea(false);
+                }}
+                className={`p-3 rounded-2xl border text-left transition-all ${
+                  item.id === progress.ideaId
+                    ? 'border-amber-400 bg-amber-400/20 text-white font-bold'
+                    : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/15'
+                }`}
+              >
+                <div className="font-bold text-sm">{lang === 'id' ? item.nama_id : item.nama_en}</div>
+                <div className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
+                  {lang === 'id' ? item.deskripsi_id : item.deskripsi_en}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Target Checkpoints Required Section */}
+      <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 space-y-4">
+        <div>
+          <div className="flex items-center justify-between">
+            <h4 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
+              <Target size={18} className="text-amber-500" />
+              <span>{t('Gedung Target Blueprint', 'Blueprint Target Buildings')}</span>
+            </h4>
+            <span className="text-xs font-bold text-slate-500">
+              {scannedTargetCount}/{targetCheckpoints.length} {t('Dikunjungi', 'Visited')}
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            {t(
+              'Kunjungi gedung-gedung ini di Solo Technopark untuk mengumpulkan skill yang dibutuhkan blueprint.',
+              'Visit these buildings at Solo Technopark to collect skills required for your blueprint.'
+            )}
+          </p>
+        </div>
+
+        <div className="space-y-2.5">
+          {targetCheckpoints.map((cp: any) => {
+            const isScanned = progress.scannedCheckpoints.includes(cp.id);
+            const card = gameData.cards.find((c: any) => c.checkpoint_id === cp.id);
+            const zone = gameData.zones.find((z: any) => z.id === cp.zona_id);
+            
+            return (
+              <div 
+                key={cp.id} 
+                className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
+                  isScanned 
+                    ? 'bg-emerald-50/80 border-emerald-200 text-slate-900 shadow-sm' 
+                    : 'bg-slate-50 border-slate-200 text-slate-700'
+                }`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-9 h-9 rounded-xl font-black text-sm flex items-center justify-center shrink-0 shadow-sm ${
+                    isScanned ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'
+                  }`}>
+                    {isScanned ? <Check size={18} strokeWidth={3} /> : '🎯'}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-black text-sm text-slate-900 truncate">
+                      {lang === 'id' ? cp.nama_id : cp.nama_en}
+                    </div>
+                    <div className="text-[11px] text-slate-500 font-medium">
+                      {lang === 'id' ? zone?.nama_id : zone?.nama_en} {card?.tags?.length ? `• Tag: ${card.tags.join(', ')}` : ''}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="shrink-0">
+                  {isScanned ? (
+                    <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[11px] font-black rounded-xl border border-emerald-200">
+                      ✓ {t('Terkumpul', 'Collected')}
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-1 bg-amber-100 text-amber-900 text-[11px] font-bold rounded-xl border border-amber-200 flex items-center gap-1">
+                      <Lock size={11} />
+                      <span>{t('Belum Visited', 'Not Visited')}</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Installed Cards Section */}
+      <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
+        <h4 className="font-extrabold text-slate-900 text-base mb-3 flex items-center gap-2">
+          <Award size={18} className="text-blue-600" />
+          <span>{t('Semua Komponen Terpasang', 'All Installed Components')}</span>
+        </h4>
         {progress.collectedCards.length === 0 ? (
-          <p className="text-sm text-slate-500 italic text-center py-4">
-            {t('Belum ada kartu terkumpul', 'No cards collected yet')}
+          <p className="text-xs text-slate-500 italic text-center py-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+            {t('Belum ada kartu terkumpul. Kunjungi checkpoint di peta!', 'No cards collected yet. Visit checkpoints on the map!')}
           </p>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {progress.collectedCards.map((cardId: string) => {
               const card = gameData.cards.find((c: any) => c.id === cardId);
               if (!card) return null;
               const checkpoint = gameData.checkpoints.find((cp: any) => cp.id === card.checkpoint_id);
+              const isTargetCard = targetCheckpoints.some((cp: any) => cp.id === card.checkpoint_id);
               return (
-                <div key={card.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
-                  <div className="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center text-xs font-bold text-blue-600 animate-pulse">
-                    {card.tipe.substring(0, 2).toUpperCase()}
+                <div key={card.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100 transition-all hover:bg-slate-100/80">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center justify-center text-xs font-black text-blue-600">
+                      {card.tipe.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="font-bold text-sm text-slate-900">{lang === 'id' ? checkpoint?.nama_id : checkpoint?.nama_en}</div>
+                      <div className="text-xs text-slate-500">{card.tipe}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-bold text-sm text-slate-800">{lang === 'id' ? checkpoint?.nama_id : checkpoint?.nama_en}</div>
-                    <div className="text-xs text-slate-500">{card.tipe}</div>
-                  </div>
+                  {isTargetCard && (
+                    <span className="text-[10px] font-black px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md border border-amber-300 uppercase">
+                      🎯 {t('Target Match', 'Target Match')}
+                    </span>
+                  )}
                 </div>
               );
             })}
@@ -1189,10 +1589,10 @@ function BlueprintView({ gameData, progress, onBackToMap, t, lang }: any) {
       
       <button 
         onClick={onBackToMap}
-        className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-slate-900 text-white font-bold text-lg shadow-xl shadow-slate-900/20 active:scale-95 transition-all duration-300 hover:-translate-y-0.5"
+        className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-slate-900 text-white font-bold text-base shadow-xl shadow-slate-900/20 active:scale-95 transition-all duration-300 hover:-translate-y-0.5 cursor-pointer"
       >
         <Map size={20} />
-        {t('Kembali ke Peta Kawasan', 'Back to Area Map')}
+        <span>{t('Kembali ke Peta Kawasan', 'Back to Area Map')}</span>
       </button>
     </div>
   );

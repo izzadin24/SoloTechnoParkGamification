@@ -51,9 +51,9 @@
     {"id": "card-3-04", "checkpoint_id": "cp-3-04", "tipe": "bonus", "ikon_url": "https://ouasxrqtjnnacxyfacmm.supabase.co/storage/v1/object/public/cards/icon_publik.jpeg", "tags": ["branding"]}
   ],
   "ideas": [
-    {"id": "ide-01", "nama_id": "Alat Kesehatan Portabel", "nama_en": "Portable Health Device", "ikon_url": null, "tag_dibutuhkan": ["sensor", "desain", "analisis", "kualitas"]},
-    {"id": "ide-02", "nama_id": "Aplikasi Logistik Desa", "nama_en": "Village Logistics App", "ikon_url": null, "tag_dibutuhkan": ["software", "data", "logistik"]},
-    {"id": "ide-03", "nama_id": "Kapal Nelayan Modern", "nama_en": "Modern Fishing Boat", "ikon_url": null, "tag_dibutuhkan": ["material", "standar", "produksi", "energi"]},
-    {"id": "ide-04", "nama_id": "Produk UMKM Naik Kelas", "nama_en": "Upgraded SME Product", "ikon_url": null, "tag_dibutuhkan": ["perakitan", "branding", "distribusi"]}
+    {"id": "ide-01", "nama_id": "Alat Kesehatan Portabel", "nama_en": "Portable Health Device", "deskripsi_id": "Inovasi perangkat medis pintar berbasis IoT untuk monitoring kesehatan masyarakat secara real-time.", "deskripsi_en": "Smart IoT medical device for real-time community health monitoring.", "ikon_url": null, "tag_dibutuhkan": ["sensor", "desain", "analisis", "kualitas"]},
+    {"id": "ide-02", "nama_id": "Aplikasi Logistik Desa", "nama_en": "Village Logistics App", "deskripsi_id": "Platform digital & software data untuk efisiensi distribusi komoditas lokal dan rantai pasok desa.", "deskripsi_en": "Digital platform & data software for efficient local commodity distribution & rural supply chains.", "ikon_url": null, "tag_dibutuhkan": ["software", "data", "logistik"]},
+    {"id": "ide-03", "nama_id": "Kapal Nelayan Modern", "nama_en": "Modern Fishing Boat", "deskripsi_id": "Rancangan kapal ramah lingkungan berbasis material komposit & energi terbarukan untuk nelayan.", "deskripsi_en": "Eco-friendly boat design with composite materials & renewable energy for fishermen.", "ikon_url": null, "tag_dibutuhkan": ["material", "standar", "produksi", "energi"]},
+    {"id": "ide-04", "nama_id": "Produk UMKM Naik Kelas", "nama_en": "Upgraded SME Product", "deskripsi_id": "Strategi otomasi produksi, branding digital, dan rantai distribusi modern untuk produk UMKM lokal.", "deskripsi_en": "Automated production, digital branding, and modern distribution strategies for local SME products.", "ikon_url": null, "tag_dibutuhkan": ["perakitan", "branding", "distribusi"]}
   ]
 }

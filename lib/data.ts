@@ -35,6 +35,8 @@ export interface Ide {
   id: string;
   nama_id: string;
   nama_en: string;
+  deskripsi_id?: string;
+  deskripsi_en?: string;
   ikon_url: string | null;
   tag_dibutuhkan: string[];
 }
@@ -67,5 +69,17 @@ export async function fetchGameData(): Promise<GameData> {
     cards: cards || [],
     ideas: ideas || [],
   };
+}
+
+export function getTargetCheckpointsForIdea(ideaId: string | null, gameData: GameData | null): Checkpoint[] {
+  if (!ideaId || !gameData) return [];
+  const idea = gameData.ideas.find((i) => i.id === ideaId);
+  if (!idea || !idea.tag_dibutuhkan) return [];
+
+  const matchingCardCheckpointIds = gameData.cards
+    .filter((card) => card.tags && card.tags.some((tag) => idea.tag_dibutuhkan.includes(tag)))
+    .map((card) => card.checkpoint_id);
+
+  return gameData.checkpoints.filter((cp) => matchingCardCheckpointIds.includes(cp.id));
 }
 
