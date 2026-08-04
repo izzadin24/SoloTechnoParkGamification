@@ -194,7 +194,7 @@ This project is intended for educational and demonstration purposes. Please refe
 1. Clone the repository
 
 ```bash
-   git clone https://github.com/<your-username>/<repo-name>.git
+   git clone https://github.com/izzadin24/SoloTechnoParkGamification.git
    cd <repo-name>
 ```
 
@@ -204,16 +204,7 @@ This project is intended for educational and demonstration purposes. Please refe
    npm install
 ```
 
-3. Set up environment variables
-
-   Create a `.env.local` file in the project root and fill in your Supabase credentials:
-
-```env
-   NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-```
-
-4. Run the development server
+3. Run the development server
 
 ```bash
    npm run dev
@@ -221,7 +212,7 @@ This project is intended for educational and demonstration purposes. Please refe
 
    The app will be available at [http://localhost:3000](http://localhost:3000).
 
-5. Build for production (optional)
+4. Build for production (optional)
 
 ```bash
    npm run build
