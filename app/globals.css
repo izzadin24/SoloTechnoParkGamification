@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,650..800&family=IBM+Plex+Sans:wght@400;450;500;600;700&display=swap");
 
 html, body {
   height: 100%;
@@ -8,6 +9,204 @@ html, body {
   overflow-x: hidden;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+}
+
+.stp-refined {
+  --stp-heading: "Fraunces", Georgia, ui-serif, serif;
+  --stp-body: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --stp-shadow-soft: 0 1px 0 rgba(255, 255, 255, 0.08) inset;
+  --stp-shadow-tight: 0 1px 0 rgba(255, 255, 255, 0.08) inset;
+  --stp-shadow-line: 0 1px 0 rgba(255, 255, 255, 0.08) inset;
+  font-family: var(--stp-body);
+  font-feature-settings: "kern", "liga", "calt";
+  text-rendering: optimizeLegibility;
+}
+
+.stp-refined :is(h1, h2, h3, h4) {
+  font-family: var(--stp-heading);
+  font-weight: 760;
+  letter-spacing: -0.032em;
+  line-height: 1.04;
+}
+
+.stp-refined h1 {
+  font-size: clamp(1.95rem, 1.7rem + 1vw, 2.55rem);
+}
+
+.stp-refined h2 {
+  font-size: clamp(1.35rem, 1.25rem + 0.4vw, 1.65rem);
+}
+
+.stp-refined h3 {
+  font-size: clamp(1.02rem, 0.98rem + 0.2vw, 1.2rem);
+}
+
+.stp-refined p {
+  line-height: 1.68;
+  letter-spacing: -0.006em;
+}
+
+.stp-refined :is(.text-xs, .text-\[10px\], .text-\[11px\]) {
+  line-height: 1.42;
+}
+
+.stp-refined .font-black {
+  font-weight: 760;
+}
+
+.stp-refined .font-extrabold {
+  font-weight: 705;
+}
+
+.stp-refined .font-bold {
+  font-weight: 635;
+}
+
+.stp-refined [class*="tracking-wider"],
+.stp-refined [class*="tracking-["] {
+  letter-spacing: 0.045em;
+}
+
+.stp-refined [class*="shadow-2xl"],
+.stp-refined [class*="shadow-xl"] {
+  box-shadow: var(--stp-shadow-soft) !important;
+}
+
+.stp-refined [class*="shadow-lg"],
+.stp-refined [class*="shadow-md"] {
+  box-shadow: var(--stp-shadow-tight) !important;
+}
+
+.stp-refined [class*="shadow-sm"] {
+  box-shadow: var(--stp-shadow-line) !important;
+}
+
+.stp-refined [class*="backdrop-blur"] {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.stp-refined :is(.rounded-3xl, .rounded-2xl, .rounded-xl, .rounded-lg, .rounded-md, .rounded-full),
+.stp-refined [class*="rounded-["] {
+  border-radius: 0 !important;
+}
+
+.stp-refined .stp-checkpoint-marker,
+.stp-refined .stp-checkpoint-marker * {
+  border-radius: 9999px !important;
+}
+
+.stp-refined [class*="border"] {
+  border-color: rgba(148, 163, 184, 0.42);
+}
+
+.stp-refined .border-white\/30,
+.stp-refined .border-white\/20,
+.stp-refined .border-white\/10 {
+  border-color: rgba(148, 163, 184, 0.36) !important;
+}
+
+.stp-refined button,
+.stp-refined input {
+  border-radius: 0 !important;
+}
+
+.stp-refined button {
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stp-refined button:not([class*="rounded-full"]):hover {
+  transform: none;
+  filter: brightness(1.04);
+}
+
+.stp-refined button:active {
+  transform: none !important;
+  filter: brightness(0.96);
+}
+
+.stp-refined [class*="hover:scale"]:hover,
+.stp-refined [class*="hover:-translate"]:hover,
+.stp-refined [class*="active:scale"]:active {
+  transform: none !important;
+}
+
+.stp-refined button:focus-visible,
+.stp-refined input:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.72);
+  outline-offset: 3px;
+}
+
+.stp-refined button svg,
+.stp-refined a svg {
+  stroke-width: 2.15;
+}
+
+.stp-refined img {
+  filter: saturate(0.94) contrast(1.02);
+}
+
+.stp-refined header,
+.stp-refined nav,
+.stp-refined [class*="bg-slate-900"],
+.stp-refined [class*="bg-slate-950"],
+.stp-refined [class*="bg-white"] {
+  box-shadow: var(--stp-shadow-line) !important;
+}
+
+.stp-refined .bg-blue-600 {
+  background-color: #2563eb;
+}
+
+.stp-refined .bg-blue-50,
+.stp-refined .bg-blue-100 {
+  background-color: rgba(241, 245, 249, 0.96) !important;
+}
+
+.stp-refined .text-blue-700,
+.stp-refined .text-blue-800 {
+  color: #1e3a8a !important;
+}
+
+.stp-refined .text-blue-400 {
+  color: #7dd3fc;
+}
+
+.stp-refined .text-blue-300 {
+  color: #bae6fd;
+}
+
+.stp-refined .bg-slate-950\/80,
+.stp-refined .bg-slate-950\/35,
+.stp-refined .bg-slate-900\/80,
+.stp-refined .bg-slate-900\/95 {
+  background-color: rgba(6, 12, 24, 0.9) !important;
+}
+
+.stp-refined .border-slate-800 {
+  border-color: rgba(71, 85, 105, 0.52) !important;
+}
+
+.stp-refined .border-blue-200,
+.stp-refined .border-blue-400\/30,
+.stp-refined .border-blue-400\/40,
+.stp-refined .border-blue-500\/40 {
+  border-color: rgba(96, 165, 250, 0.34) !important;
+}
+
+.stp-refined .ring-blue-500,
+.stp-refined .ring-blue-500\/40 {
+  --tw-ring-color: rgba(96, 165, 250, 0.7) !important;
+}
+
+.stp-refined .animate-pulse {
+  animation-duration: 3.4s;
+}
+
+.stp-refined ::selection {
+  background: rgba(96, 165, 250, 0.35);
+  color: #fff;
 }
 
 @keyframes stp-main-view-forward {
@@ -80,7 +279,10 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .stp-main-view-forward,
   .stp-main-view-back,
-  .stp-checkpoint-popup-in {
+  .stp-checkpoint-popup-in,
+  .stp-popup-backdrop,
+  .stp-popup-panel,
+  .stp-popup-slide-down {
     animation: none;
   }
 
@@ -90,4 +292,65 @@ html, body {
     transform: none;
     filter: none;
   }
+}
+
+/* Popup overlay backdrop fade-in */
+@keyframes stp-popup-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.stp-popup-backdrop {
+  animation: stp-popup-backdrop-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Popup panel slide-up from bottom */
+@keyframes stp-popup-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(32px) scale(0.97);
+    filter: blur(2px);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.005);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.stp-popup-panel {
+  animation: stp-popup-panel-in 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Inline drawer slide-down (e.g. Ganti Blueprint selector) */
+@keyframes stp-popup-slide-down-in {
+  from {
+    opacity: 0;
+    transform: translateY(-16px) scaleY(0.94);
+    filter: blur(2px);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(3px) scaleY(1.01);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+    filter: blur(0);
+  }
+}
+
+.stp-popup-slide-down {
+  transform-origin: top center;
+  animation: stp-popup-slide-down-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }

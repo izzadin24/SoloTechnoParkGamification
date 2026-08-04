@@ -7,7 +7,7 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import { 
   Map, ScanLine, LayoutGrid, Hammer, X, Check, ArrowRight, Lock, Star, Plus, Minus, 
   RotateCcw, Building, QrCode, Compass, Keyboard, HelpCircle, Target, Sparkles, Info, 
-  CheckCircle2, ChevronRight, RefreshCw, Award
+  CheckCircle2, ChevronRight, RefreshCw, Award, Settings
 } from 'lucide-react';
 
 import snapshotData from '../data/snapshot.json';
@@ -47,6 +47,7 @@ export default function GameApp() {
   const [mainTransitionDirection, setMainTransitionDirection] = useState(0);
   const [lang, setLang] = useState<Lang>('id');
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [gameData, setGameData] = useState<GameData | null>(null);
   const [progress, setProgress] = useState<PlayerProgress>({
     ideaId: null,
@@ -62,6 +63,9 @@ export default function GameApp() {
 
   useEffect(() => {
     const loadInitialData = async () => {
+      const savedLang = localStorage.getItem('stp_lang');
+      if (savedLang === 'id' || savedLang === 'en') setLang(savedLang);
+
       const savedProgress = localStorage.getItem('stp_progress');
       if (savedProgress) setProgress(JSON.parse(savedProgress));
 
@@ -88,6 +92,10 @@ export default function GameApp() {
     
     loadInitialData();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('stp_lang', lang);
+  }, [lang]);
 
   useEffect(() => {
     localStorage.setItem('stp_progress', JSON.stringify(progress));
@@ -192,7 +200,7 @@ export default function GameApp() {
 
   return (
     <div
-      className="fixed inset-0 w-full h-full bg-slate-50 text-slate-900 font-sans overflow-hidden flex flex-col"
+      className="stp-refined fixed inset-0 w-full h-full bg-slate-50 text-slate-900 font-sans overflow-hidden flex flex-col"
       style={{
         backgroundImage: `url(${pageBackground.src})`,
         backgroundSize: 'cover',
@@ -218,21 +226,14 @@ export default function GameApp() {
                 <span>{t('Bantuan', 'Help')}</span>
               </button>
 
-              {/* Language Switcher */}
-              <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
-                <button 
-                  onClick={() => setLang('id')} 
-                  className={`px-2.5 py-0.5 rounded-lg text-xs font-bold transition-all ${lang === 'id' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                >
-                  ID
-                </button>
-                <button 
-                  onClick={() => setLang('en')} 
-                  className={`px-2.5 py-0.5 rounded-lg text-xs font-bold transition-all ${lang === 'en' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                >
-                  EN
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowSettings(true)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold transition-all"
+              >
+                <Settings size={14} />
+                <span>{t('Setelan', 'Settings')}</span>
+              </button>
 
               <div className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60 uppercase">
                 {view === 'inventory' ? t('Kartu', 'Cards') : view === 'blueprint' ? 'Blueprint' : view === 'scanner' ? 'Scanner' : view}
@@ -246,12 +247,12 @@ export default function GameApp() {
             <div className="animate-in fade-in duration-300">
               <LandingView 
                 lang={lang} 
-                setLang={setLang} 
                 gameData={gameData}
                 isLoading={isLoading}
                 error={error}
                 onStart={handleStart}
                 onOpenHowToPlay={() => setShowHowToPlay(true)}
+                onOpenSettings={() => setShowSettings(true)}
                 t={t}
               />
             </div>
@@ -270,7 +271,7 @@ export default function GameApp() {
                 onOpenHowToPlay={() => setShowHowToPlay(true)}
                 t={t} 
                 lang={lang}
-                setLang={setLang}
+                onOpenSettings={() => setShowSettings(true)}
               />
             </div>
           )}
@@ -354,6 +355,15 @@ export default function GameApp() {
           />
         )}
 
+        {showSettings && (
+          <SettingsModal
+            lang={lang}
+            setLang={setLang}
+            onClose={() => setShowSettings(false)}
+            t={t}
+          />
+        )}
+
         {/* Fixed Non-overlapping Bottom Navigation Bar */}
         {view !== 'landing' && (
           <nav className="shrink-0 h-16 w-full bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-2xl flex justify-center items-center select-none z-40">
@@ -404,8 +414,8 @@ export default function GameApp() {
 
 function HowToPlayModal({ onClose, t, lang }: any) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-y-auto relative animate-in zoom-in-95 duration-300 text-slate-800">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/80 p-0 sm:p-4 backdrop-blur-md stp-popup-backdrop">
+      <div className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-y-auto relative stp-popup-panel text-slate-800">
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-600 transition-all cursor-pointer"
@@ -475,7 +485,77 @@ function HowToPlayModal({ onClose, t, lang }: any) {
   );
 }
 
-function LandingView({ lang, setLang, gameData, isLoading, error, onStart, onOpenHowToPlay, t }: any) {
+function SettingsModal({
+  lang,
+  setLang,
+  onClose,
+  t,
+}: any) {
+  const languageOptions = [
+    { value: 'id', label: 'ID', description: 'Bahasa Indonesia' },
+    { value: 'en', label: 'EN', description: 'English' },
+  ];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/75 p-0 sm:p-4 backdrop-blur-md stp-popup-backdrop"
+      onClick={onClose}
+    >
+      <div
+        className="w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl border border-slate-100 bg-white p-5 text-slate-900 shadow-2xl stp-popup-panel"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-5 flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-black leading-tight">{t('Setelan', 'Settings')}</h2>
+            <p className="mt-1 text-xs font-semibold text-slate-500">
+              {t('Bahasa aplikasi', 'App language')}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full bg-slate-100 p-2 text-slate-600 transition-all hover:bg-slate-200 active:scale-95"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <section>
+          <h3 className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-slate-500">
+            {t('Bahasa', 'Language')}
+          </h3>
+          <div className="grid grid-cols-2 gap-2">
+            {languageOptions.map((option) => {
+              const isSelected = lang === option.value;
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setLang(option.value)}
+                  className={`rounded-2xl border p-3 text-left transition-all active:scale-95 ${
+                    isSelected
+                      ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+                      : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-black">{option.label}</span>
+                    {isSelected && <Check size={16} strokeWidth={3} />}
+                  </div>
+                  <p className="mt-1 text-[11px] font-semibold opacity-80">{option.description}</p>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function LandingView({ lang, gameData, isLoading, error, onStart, onOpenHowToPlay, onOpenSettings, t }: any) {
   const ideas = gameData?.ideas || [];
   const [selectedIdea, setSelectedIdea] = useState<string | null>(null);
   const [showRoutesForIdea, setShowRoutesForIdea] = useState<string | null>(null);
@@ -489,7 +569,7 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, onOpe
   return (
     <div className="flex flex-col items-center justify-center min-h-[85vh] text-center space-y-5 pb-6">
       {/* App Main Banner - Centered Title & Description */}
-      <div className="w-full rounded-3xl border border-slate-700/60 bg-slate-900/80 px-6 py-7 shadow-2xl backdrop-blur-md relative overflow-hidden text-center flex flex-col items-center justify-center">
+      <div className="w-full px-0 py-5 relative overflow-hidden text-center flex flex-col items-center justify-center">
         <h1 className="text-3xl font-black text-white tracking-tight mb-2 text-center">
           Jelajah Solo Technopark
         </h1>
@@ -501,25 +581,16 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, onOpe
         </p>
       </div>
 
-      {/* Control Bar: Language Switcher & How to Play Button */}
+      {/* Control Bar: Settings & How to Play Button */}
       <div className="w-full flex items-center justify-between gap-3">
-        {/* Language Switcher */}
-        <div className="flex bg-slate-900/80 p-1 rounded-2xl border border-slate-700 shadow-md">
-          <button 
-            type="button"
-            onClick={() => setLang('id')} 
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${lang === 'id' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:text-white'}`}
-          >
-            ID
-          </button>
-          <button 
-            type="button"
-            onClick={() => setLang('en')} 
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${lang === 'en' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:text-white'}`}
-          >
-            EN
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="flex items-center gap-1.5 px-4 py-2 bg-slate-900/80 hover:bg-slate-900 active:scale-95 text-slate-100 font-extrabold text-xs rounded-2xl border border-slate-700 shadow-md transition-all cursor-pointer"
+        >
+          <Settings size={15} strokeWidth={2.5} />
+          <span>{t('Setelan', 'Settings')}</span>
+        </button>
 
         {/* How to Play Button (Solid Blue Theme) */}
         <button
@@ -540,9 +611,6 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, onOpe
               <Target size={18} className="text-blue-400" />
               <span>{t('Pilih Blueprint Target:', 'Choose Target Blueprint:')}</span>
             </h2>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-300 bg-blue-600/30 px-2.5 py-0.5 rounded-full border border-blue-400/30">
-              {ideas.length} {t('Opsi', 'Options')}
-            </span>
           </div>
           <p className="text-xs text-slate-300 mt-1">
             {t(
@@ -599,7 +667,7 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, onOpe
                   {/* Clean Sentence Description ONLY (No crowded target pills by default) */}
                   {isSelected && (
                     <div className="mt-3 pt-3 border-t border-slate-800 text-xs space-y-2.5 animate-in fade-in duration-200">
-                      <p className="text-slate-200 font-medium leading-relaxed bg-slate-950 p-3 rounded-xl border border-slate-800">
+                      <p className="text-slate-200 font-medium leading-relaxed">
                         {ideaDescription}
                       </p>
                       
@@ -648,7 +716,7 @@ function LandingView({ lang, setLang, gameData, isLoading, error, onStart, onOpe
   );
 }
 
-function MapView({ gameData, progress, onScan, onScanManual, onOpenHowToPlay, t, lang, setLang }: any) {
+function MapView({ gameData, progress, onScan, onScanManual, onOpenHowToPlay, onOpenSettings, t, lang }: any) {
   const [selectedCheckpoint, setSelectedCheckpoint] = useState<any | null>(null);
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [isCheckpointPopupVisible, setIsCheckpointPopupVisible] = useState(false);
@@ -862,51 +930,40 @@ function MapView({ gameData, progress, onScan, onScanManual, onOpenHowToPlay, t,
   return (
     <div className="relative flex-1 w-full h-full overflow-hidden bg-slate-950 select-none touch-none animate-in fade-in duration-300">
       {/* Top Floating App Header & Active Blueprint Objective */}
-      <div className="absolute top-3 left-3 right-3 z-30 flex flex-col gap-2 pointer-events-none">
-        <div className="flex items-center justify-between pointer-events-auto">
-          <div className="bg-white/95 backdrop-blur-md border border-slate-200 px-3.5 py-1.5 rounded-2xl shadow-xl font-black text-slate-800 text-sm flex items-center gap-2">
-            <Map className="text-blue-600" size={18} />
+      <div className="absolute top-0 left-0 right-0 z-30 flex flex-col gap-2 pointer-events-none">
+        <header className="shrink-0 h-12 w-full z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 flex justify-between items-center shadow-sm pointer-events-auto">
+          <div className="font-extrabold text-lg text-slate-800 tracking-tight flex items-center gap-2">
             <span>Jelajah STP</span>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* How to Play Help Button */}
-            <button 
+            <button
               type="button"
-              onClick={onOpenHowToPlay} 
-              className="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-3 py-1.5 rounded-2xl font-black text-xs shadow-xl border border-blue-400/40 flex items-center gap-1 cursor-pointer"
+              onClick={onOpenHowToPlay}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-bold transition-all"
             >
-              <HelpCircle size={14} strokeWidth={2.5} />
-              <span>{t('Petunjuk', 'Guide')}</span>
+              <HelpCircle size={14} />
+              <span>{t('Bantuan', 'Help')}</span>
             </button>
 
-            {/* Language Switcher */}
-            <div className="flex bg-white/95 backdrop-blur-md p-1 rounded-2xl border border-slate-200 shadow-xl">
-              <button 
-                type="button"
-                onClick={() => setLang('id')} 
-                className={`px-2.5 py-1 rounded-xl text-xs font-black transition-all ${
-                  lang === 'id' ? 'bg-blue-600 text-white shadow-md scale-105' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                ID
-              </button>
-              <button 
-                type="button"
-                onClick={() => setLang('en')} 
-                className={`px-2.5 py-1 rounded-xl text-xs font-black transition-all ${
-                  lang === 'en' ? 'bg-blue-600 text-white shadow-md scale-105' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                EN
-              </button>
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold transition-all"
+            >
+              <Settings size={14} />
+              <span>{t('Setelan', 'Settings')}</span>
+            </button>
+
+            <div className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200/60 uppercase">
+              {t('Peta', 'Map')}
             </div>
           </div>
-        </div>
+        </header>
 
         {/* Active Blueprint Target Banner (Blue Theme) */}
         {activeIdea && (
-          <div className="pointer-events-auto bg-slate-900/95 backdrop-blur-md border border-blue-500/40 px-3.5 py-2 rounded-2xl shadow-2xl flex items-center justify-between text-white animate-in slide-in-from-top-2 duration-300">
+          <div className="pointer-events-auto mx-3 bg-slate-900/95 backdrop-blur-md border border-blue-500/40 px-3.5 py-2 rounded-2xl shadow-2xl flex items-center justify-between text-white animate-in slide-in-from-top-2 duration-300">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-7 h-7 rounded-xl bg-blue-600/20 border border-blue-400/40 flex items-center justify-center shrink-0">
                 <Target size={16} className="text-blue-400" />
@@ -998,7 +1055,7 @@ function MapView({ gameData, progress, onScan, onScanManual, onOpenHowToPlay, t,
                       }, 180);
                     }, 2500);
                   }}
-                  className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 transition-transform ${
+                  className={`stp-checkpoint-marker absolute -translate-x-1/2 -translate-y-1/2 z-10 transition-transform ${
                     isRestricted ? 'cursor-not-allowed' : 'cursor-pointer hover:scale-125 active:scale-110'
                   }`}
                   style={{ left: `${posX}%`, top: `${posY}%` }}
@@ -1124,36 +1181,64 @@ function MapView({ gameData, progress, onScan, onScanManual, onOpenHowToPlay, t,
 
 function ScannerView({ onSuccess, onCancel, t, lang }: any) {
   const [manualCode, setManualCode] = useState('');
+  const onSuccessRef = useRef(onSuccess);
+
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
 
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
-    
-    setTimeout(() => {
-      scanner = new Html5QrcodeScanner(
-        "qr-reader",
-        { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
-        false
-      );
-      
-      scanner.render(
-        (text) => {
-          if (scanner) {
-            scanner.clear();
+    let timerId: NodeJS.Timeout | null = null;
+    let isMounted = true;
+
+    timerId = setTimeout(() => {
+      if (!isMounted) return;
+
+      const element = document.getElementById('qr-reader');
+      if (!element) return;
+
+      element.innerHTML = '';
+
+      try {
+        scanner = new Html5QrcodeScanner(
+          'qr-reader',
+          { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
+          false
+        );
+
+        scanner.render(
+          (text) => {
+            if (scanner) {
+              scanner.clear().catch(() => {});
+              scanner = null;
+            }
+            if (onSuccessRef.current) {
+              onSuccessRef.current(text);
+            }
+          },
+          () => {
+            // quiet fail for non-QR frames
           }
-          onSuccess(text);
-        },
-        (error) => {
-          // quiet fail
-        }
-      );
+        );
+      } catch (err) {
+        console.error('Error initializing QR scanner:', err);
+      }
     }, 100);
 
     return () => {
+      isMounted = false;
+      if (timerId) clearTimeout(timerId);
       if (scanner) {
-        scanner.clear().catch(console.error);
+        scanner.clear().catch(() => {});
+        scanner = null;
+      }
+      const element = document.getElementById('qr-reader');
+      if (element) {
+        element.innerHTML = '';
       }
     };
-  }, [onSuccess]);
+  }, []);
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-300">
@@ -1486,7 +1571,7 @@ function BlueprintView({ gameData, progress, onBackToMap, onSelectIdea, onOpenHo
         </h3>
 
         {/* Distinct 1-2 sentence description text (Never repeats title) */}
-        <p className="text-xs text-slate-300 leading-relaxed mb-4 bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+        <p className="text-xs text-slate-300 leading-relaxed mb-4">
           {ideaDescription}
         </p>
 
@@ -1518,7 +1603,7 @@ function BlueprintView({ gameData, progress, onBackToMap, onSelectIdea, onOpenHo
 
       {/* Switch Blueprint Selection Drawer */}
       {isChangingIdea && (
-        <div className="bg-slate-900 text-white p-5 rounded-3xl border border-slate-800 shadow-2xl space-y-3 animate-in fade-in duration-200">
+        <div className="bg-slate-900 text-white p-5 rounded-3xl border border-slate-800 shadow-2xl space-y-3 stp-popup-slide-down">
           <div className="flex items-center justify-between">
             <h4 className="font-extrabold text-sm text-blue-400">{t('Pilih Blueprint Baru:', 'Select New Blueprint:')}</h4>
             <button onClick={() => setIsChangingIdea(false)} className="text-slate-400 hover:text-white text-xs font-bold">
