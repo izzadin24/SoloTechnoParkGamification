@@ -251,6 +251,9 @@ export default function AdminPage() {
           const fileName = `icon_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
           const filePath = `${fileName}`;
 
+          const { data: { session: debugSession } } = await supabase.auth.getSession();
+          console.log('SESSION SAAT UPLOAD ICON:', debugSession);
+
           const { data: uploadData, error: uploadErr } = await supabase.storage
             .from('kartu_icons')
             .upload(filePath, selectedIconFile, { upsert: true });
