@@ -181,6 +181,56 @@ project/
 
 This project is intended for educational and demonstration purposes. Please refer to the repository license for usage details.
 
+## Getting Started
 
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (v18 or later recommended)
+- npm (comes with Node.js) or yarn/pnpm
+- A [Supabase](https://supabase.com/) project (for the database & storage)
+
+### Installation
+
+1. Clone the repository
+
+```bash
+   git clone https://github.com/<your-username>/<repo-name>.git
+   cd <repo-name>
+```
+
+2. Install dependencies
+
+```bash
+   npm install
+```
+
+3. Set up environment variables
+
+   Create a `.env.local` file in the project root and fill in your Supabase credentials:
+
+```env
+   NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+4. Run the development server
+
+```bash
+   npm run dev
+```
+
+   The app will be available at [http://localhost:3000](http://localhost:3000).
+
+5. Build for production (optional)
+
+```bash
+   npm run build
+   npm run start
+```
+
+### Notes
+
+- QR scanning requires camera access, which browsers typically only allow over **HTTPS** or on `localhost`. When testing on a real device, use a tunneling tool (e.g. ngrok) or deploy to a hosted environment.
+- If Supabase is unreachable, the app automatically falls back to the local offline snapshot (`data/snapshot.json`), so the map/checkpoints/cards remain usable offline.
 
 
