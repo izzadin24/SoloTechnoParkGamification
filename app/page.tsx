@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { GameData, fetchGameData, getTargetCheckpointsForIdea, getIdeaDescription } from '../lib/data';
 import { supabase } from '../lib/supabase';
 import { Html5QrcodeScanner } from 'html5-qrcode';
@@ -1463,16 +1464,16 @@ function InventoryView({ gameData, progress, onBackToMap, t, lang }: any) {
         {t('Kembali ke Peta Kawasan', 'Back to Area Map')}
       </button>
 
-      {selectedCard && (
+      {selectedCard && typeof window !== 'undefined' && createPortal(
         <div
-          className={`fixed inset-0 z-50 flex items-start justify-center bg-slate-950/70 p-3 pt-4 sm:p-4 sm:pt-6 transition-all duration-300 ${isCardModalVisible ? 'opacity-100' : 'opacity-0'}`}
+          className={`fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-md transition-all duration-300 ${isCardModalVisible ? 'opacity-100' : 'opacity-0'}`}
           onClick={() => {
             setIsCardModalVisible(false);
             window.setTimeout(() => setSelectedCard(null), 180);
           }}
         >
           <div
-            className={`w-full max-w-[20rem] rounded-[1.75rem] bg-white p-4 shadow-2xl transition-all duration-300 ${isCardModalVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2'}`}
+            className={`w-full max-w-[20rem] max-h-[85vh] overflow-y-auto rounded-[1.75rem] bg-white p-5 shadow-2xl transition-all duration-300 my-auto ${isCardModalVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'}`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3">
@@ -1480,7 +1481,7 @@ function InventoryView({ gameData, progress, onBackToMap, t, lang }: any) {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
                   {isSelectedCardCollected ? selectedCard.tipe : t('Tersembunyi', 'Hidden')}
                 </p>
-                <h3 className="mt-1 text-xl font-black text-slate-900">
+                <h3 className="mt-1 text-xl font-black text-slate-900 leading-tight">
                   {isSelectedCardCollected
                     ? (lang === 'id' ? selectedCheckpoint?.nama_id : selectedCheckpoint?.nama_en)
                     : t('Kartu Misteri', 'Mystery Card')}
@@ -1492,13 +1493,13 @@ function InventoryView({ gameData, progress, onBackToMap, t, lang }: any) {
                   setIsCardModalVisible(false);
                   window.setTimeout(() => setSelectedCard(null), 180);
                 }}
-                className="rounded-full bg-slate-100 p-2 text-slate-600"
+                className="rounded-full bg-slate-100 p-2 text-slate-600 hover:bg-slate-200 transition-colors shrink-0"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="mt-4 overflow-hidden rounded-[1.5rem] bg-slate-100 aspect-[3/4]">
+            <div className="mt-4 overflow-hidden rounded-[1.5rem] bg-slate-100 aspect-[3/4] shadow-inner">
               {isSelectedCardCollected ? (
                 <img
                   src={selectedCard.ikon_url || ''}
@@ -1512,14 +1513,14 @@ function InventoryView({ gameData, progress, onBackToMap, t, lang }: any) {
               )}
             </div>
 
-            <div className="space-y-3">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 leading-6 transition-all duration-300 hover:bg-slate-100">
+            <div className="mt-4 space-y-3">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-sm text-slate-700 leading-relaxed">
                 <p className="font-semibold text-slate-900 mb-1">
                   {isSelectedCardCollected
                     ? (lang === 'id' ? selectedCheckpoint?.nama_id : selectedCheckpoint?.nama_en)
                     : t('Kartu Misteri', 'Mystery Card')}
                 </p>
-                <p>
+                <p className="text-xs text-slate-600">
                   {isSelectedCardCollected
                     ? (lang === 'id' ? selectedCheckpoint?.reveal_id : selectedCheckpoint?.reveal_en)
                     : t('Kartu ini belum terkumpul', 'This card has not been collected yet')}
@@ -1527,7 +1528,8 @@ function InventoryView({ gameData, progress, onBackToMap, t, lang }: any) {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
